@@ -1446,87 +1446,95 @@
 
       if (startsWithSubject || endsWithSentencePunct) {
         return `${trimmedPrev}\n${trimmedNext}`;
-      }
-
-      // Mid-sentence page-break split (e.g., "...논" + "리정연하게...", "...검" + "증을 통해...")
-      if (prevEndedWithSpace || /^\s/.test(nextText)) {
-        return `${trimmedPrev} ${trimmedNext}`;
-      }
-      return `${trimmedPrev}${trimmedNext}`;
     }
 
-    // Helper: Normalize multi-subject inline text so each "과목명: " after a period starts on a new line
-    function normalizeSubjectLineBreaks(text) {
-      if (!text) return '';
-      const clean = String(text).replace(/\r\n/g, '\n');
-      return clean.replace(/([.!?])[ \t]+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()]{2,18}\s*:\s+)/g, (full, punct, subjHeader) => {
-        const titleCandidate = subjHeader.replace(/:\s*$/, '').trim();
-        if (isValidSubjectTitle(titleCandidate)) {
-          return `${punct}\n${subjHeader}`;
+    // Helper: Check if an individual cell is NEIS metadata, report title, column header, school footer, or page number
+    function isNeisMetadataOrHeaderCell(cellText) {
+      if (!cellText) return true;
+      const t = String(cellText).trim();
+      if (!t) return true;
+
+      // 1) User / Teacher / Print author info anywhere in the cell (e.g., "사용자명 : 진한결", "출력자: 홍길동")
+      if (/(사용자명|사용자|출력자|작성자|인쇄자|담임교사|학급담임|교과담당|담당교사)\s*[:：]/.test(t) && t.length < 60) {
+        return true;
+      }
+
+      // 2) Date / Timestamp cell (e.g., "2026.10.14.", "출력일시 : 2026.10.14 09:30")
+      if (/^(출력일시|작성일시|인쇄일시|출력일|기준일)?\s*[:：]?\s*\d{4}\s*[.\-/년]\s*\d{1,2}\s*[.\-/월]\s*\d{1,2}[.\-/일]?(\s+\d{1,2}:\d{2}(:\d{2})?)?$/.test(t)) {
+        return true;
+      }
+
+      // 3) Page number cell (e.g., "1 / 32", "- 1 -", "32쪽")
+      if (/^(\d+\s*\/\s*\d+|-\s*\d+\s*-|\d{1,3}\s*쪽|\d{1,3}\s*페이지|\/)$/.test(t)) {
+        return true;
+      }
+
+      // 4) School / Education Office name cell (e.g., "서전고등학교")
+      if (/^[가-힣A-Za-z0-9()·\s]{2,20}(고등학교|고교|중학교|초등학교|특수학교|학교|교육청|교육지원청)$/.test(t)) {
+        return true;
+      }
+
+      // 5) Report Titles & Table Column Headers (e.g., "학교생활기록부 세부능력 및 특기사항", "번 호", "성 명", "세부능력 및 특기사항")
+      if (t.length < 45 && !/[.!?]/.test(t)) {
+        const strippedTitle = t
+          .replace(/(학교생활기록부|학생생활기록부|학교생활세부사항기록부|교과학습발달상황|창의적\s*체험활동상황|창의적\s*체험활동|자율·?자치활동|자율활동|동아리활동|진로활동|봉사활동\s*실적|봉사활동|행동특성\s*및\s*종합의견|독서활동상황|독서활동|일상생활\s*활동상황|출결상황|학적사항|인적·?학적사항|수상경력|자격증\s*취득상황|과목별\s*세부능력\s*및\s*특기사항|개인별\s*세부능력\s*및\s*특기사항|세부능력\s*및\s*특기사항|특기사항|과목별|개인별|학급별|영역별|목록|현황|조회|출력물)/g, '')
+          .replace(/(번호|성명|이름|학년|학반|반|학번|학기|교과|과목명|과목|학점|단위수|영역|이수시간|시간|비고|결재|담임|부장|교감|교장|계)/g, '')
+          .replace(/[\s()\[\]·\-0-9.:：/]/g, '');
+        if (strippedTitle.length === 0) {
+          return true;
         }
-        return full;
-      });
+      }
+
+      return false;
     }
 
     // Helper: Classify a row from NEIS Excel/PDF export so headers, footers, dates, user info, and school names are never mistaken for students
     function classifyNeisRow(rawCells) {
-      const cells = rawCells
+      const rawNonEmpty = rawCells
         .map((c, idx) => {
           const rawStr = String(c ?? '').replace(/\r\n/g, '\n');
           return { colIdx: idx, raw: rawStr, text: rawStr.trim() };
         })
         .filter(c => c.text.length > 0);
 
-      if (cells.length === 0) return { type: 'empty' };
+      if (rawNonEmpty.length === 0) return { type: 'empty' };
 
-      const joined = cells.map(c => c.text).join(' ').replace(/\s+/g, ' ').trim();
-      const noSpaceJoined = joined.replace(/\s+/g, '');
+      // Check if any cell has a school name or class banner before filtering metadata cells
+      let detectedSchoolName = '';
+      let detectedClassBanner = '';
 
-      // 1) Date / Print timestamp row (e.g., "2026.10.14.", "2026-10-14", "출력일시 : 2026.10.14")
-      if (/^(출력일시|작성일시|인쇄일시)?\s*[:：]?\s*\d{4}\s*[.\-/년]\s*\d{1,2}\s*[.\-/월]\s*\d{1,2}[.\-/일]?(\s+\d{1,2}:\d{2}(:\d{2})?)?$/.test(joined)) {
-        return { type: 'metadata' };
+      for (const c of rawNonEmpty) {
+        if (/^(?:[가-힣]+\s+)?제?\s*\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(c.text)) {
+          detectedClassBanner = c.text.replace(/\s+/g, ' ');
+        } else if (/^[가-힣A-Za-z0-9()·\s]{2,20}(고등학교|고교|중학교|초등학교|특수학교)$/.test(c.text)) {
+          detectedSchoolName = c.text;
+        }
       }
 
-      // 2) NEIS User / Teacher / Approval row (e.g., "사용자명 : 진한결", "담임 : ...", "결재")
-      if (/^(사용자명|출력자|작성자|담임교사|학급담임|교과담당|담당교사)\s*[:：]/.test(joined) && joined.length < 50) {
-        return { type: 'metadata' };
-      }
-
-      // 3) Class / Grade Banner row (e.g., "1학년 2반", "제 1학년 2반", "전기과 2학년 1반")
-      if (cells.length <= 3 && /^(?:[가-힣]+\s+)?제?\s*\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(joined)) {
-        return { type: 'class_banner', classInfo: joined };
-      }
-
-      // 4) School Name & Page Number Footer/Header row (e.g., "서전고등학교" + "1 / 32" or "32")
-      const nonPageCells = cells.filter(c => !/^(\d+\s*\/\s*\d+|-\s*\d+\s*-|\d{1,3}|\/|쪽|페이지)$/.test(c.text));
-      if (nonPageCells.length === 0) {
-        return { type: 'page_number' };
-      }
-      if (
-        nonPageCells.length === 1 &&
-        /^[가-힣A-Za-z0-9()·\s]{2,20}(고등학교|고교|중학교|초등학교|학교|교육청)$/.test(nonPageCells[0].text)
-      ) {
-        return { type: 'school_footer', schoolName: nonPageCells[0].text.trim() };
-      }
-
-      // 5) Table Column Header Row (e.g., "번 호 | 성 명 | 학 년 | 세부능력 및 특기사항")
-      const headerKeywords = new Set([
-        '번호', '성명', '이름', '학년', '반', '학번', '학기', '교과', '과목', '과목명', '학점', '단위수',
-        '세부능력및특기사항', '과목별세부능력및특기사항', '개인별세부능력및특기사항', '특기사항',
-        '창의적체험활동상황', '행동특성및종합의견', '독서활동상황', '출결상황', '수상경력',
-        '영역', '시간', '이수시간', '비고', '결재', '담임', '부장', '교감', '교장', '학교생활기록부', '교과학습발달상황'
-      ]);
-
-      const allCellsAreHeaders = cells.every(c => {
-        const norm = c.text.replace(/\s+/g, '');
-        return headerKeywords.has(norm);
+      // Filter out cells that are metadata, titles, headers, dates, user names, or page numbers
+      const cells = rawNonEmpty.filter(c => {
+        if (/^(?:[가-힣]+\s+)?제?\s*\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(c.text)) return false;
+        return !isNeisMetadataOrHeaderCell(c.text);
       });
 
-      if (allCellsAreHeaders || headerKeywords.has(noSpaceJoined)) {
-        return { type: 'table_header' };
+      if (cells.length === 0) {
+        if (detectedClassBanner) return { type: 'class_banner', classInfo: detectedClassBanner };
+        if (detectedSchoolName) return { type: 'school_footer', schoolName: detectedSchoolName };
+        return { type: 'metadata' };
       }
 
-      return { type: 'data', cells };
+      // If only pure numbers remain (e.g. standalone page number "32"), ignore the row
+      if (cells.every(c => /^\d{1,4}$/.test(c.text))) {
+        if (detectedSchoolName) return { type: 'school_footer', schoolName: detectedSchoolName };
+        return { type: 'page_number' };
+      }
+
+      return {
+        type: 'data',
+        cells,
+        rowClassInfo: detectedClassBanner,
+        rowSchoolName: detectedSchoolName
+      };
     }
 
     async function extractStudentsFromNeisPdf(uint8Array) {
@@ -1566,13 +1574,15 @@
 
     function extractStudentsFromNeisRows(rows) {
       const result = [];
+      const fallbackUnnamedParagraphs = [];
       let currentClassInfo = '업로드 학급';
       let detectedSchool = '';
 
       const bannedNameWords = new Set([
         '세부능력', '특기사항', '자율활동', '자치활동', '동아리활동', '진로활동',
         '행동특성', '종합의견', '독서활동', '과목별', '개인별', '공통국어', '공통수학',
-        '공통영어', '통합사회', '통합과학', '한국사', '학교생활', '기록부', '사용자명'
+        '공통영어', '통합사회', '통합과학', '한국사', '학교생활', '기록부', '사용자명',
+        '교과학습', '발달상황', '창의적', '체험활동'
       ]);
 
       for (let r = 0; r < rows.length; r++) {
@@ -1597,6 +1607,13 @@
           continue;
         }
 
+        if (classification.rowClassInfo) {
+          currentClassInfo = classification.rowClassInfo;
+        }
+        if (classification.rowSchoolName) {
+          detectedSchool = classification.rowSchoolName;
+        }
+
         const cells = classification.cells;
 
         // Identify the main record text cell (longest cell in the row)
@@ -1608,27 +1625,22 @@
         });
 
         if (!longestCellObj || longestCellObj.text.length < 4) continue;
+        if (isNeisMetadataOrHeaderCell(longestCellObj.text)) continue;
 
         let detectedName = '';
         let nameColIdx = -1;
-        let rowClassInfo = '';
 
         // 1) Find student name cell (excluding the main text cell)
         for (const cellObj of cells) {
           if (cellObj.colIdx === longestCellObj.colIdx) continue;
           const val = cellObj.text;
 
-          if (/^(?:[가-힣]+\s+)?제?\s*\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(val)) {
-            rowClassInfo = val.replace(/\s+/g, ' ');
-            continue;
-          }
-
           const cleanNameCandidate = val.replace(/\s+/g, '');
           if (
             !detectedName &&
             /^[가-힣*]{2,5}$/.test(cleanNameCandidate) &&
             !bannedNameWords.has(cleanNameCandidate) &&
-            !/(고등학교|중학교|초등학교|학교|교육청|올림피아드)$/.test(cleanNameCandidate)
+            !/(고등학교|중학교|초등학교|학교|교육청|올림피아드|특기사항|세부능력|기록부)$/.test(cleanNameCandidate)
           ) {
             detectedName = cleanNameCandidate;
             nameColIdx = cellObj.colIdx;
@@ -1638,16 +1650,17 @@
         // 2) Find student number (번호):
         // In NEIS tables ([번 호] | [성 명] | [학 년] | [세부능력 및 특기사항]),
         // the student number is to the LEFT of the student name (colIdx < nameColIdx).
-        // The number to the RIGHT of the student name is 학년 (Grade 1, 2, 3), which must NOT overwrite 번호!
         let detectedNum = null;
-        for (const cellObj of cells) {
-          if (cellObj.colIdx === longestCellObj.colIdx) continue;
-          if (nameColIdx !== -1 && cellObj.colIdx >= nameColIdx) continue;
+        if (nameColIdx !== -1) {
+          for (const cellObj of cells) {
+            if (cellObj.colIdx === longestCellObj.colIdx) continue;
+            if (cellObj.colIdx >= nameColIdx) continue;
 
-          const numMatch = cellObj.text.match(/^(\d{1,3})\s*번?$/);
-          if (numMatch) {
-            detectedNum = parseInt(numMatch[1], 10);
-            break;
+            const numMatch = cellObj.text.match(/^(\d{1,3})\s*번?$/);
+            if (numMatch) {
+              detectedNum = parseInt(numMatch[1], 10);
+              break;
+            }
           }
         }
 
@@ -1665,14 +1678,19 @@
           }
         }
 
-        if (rowClassInfo) {
-          currentClassInfo = rowClassInfo;
-        }
+        // Clean any inline metadata lines that might be embedded inside a multi-line cell
+        mainText = mainText
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0 && !isNeisMetadataOrHeaderCell(line))
+          .join('\n')
+          .trim();
 
-        // 3) Check if this row is a page-break / multi-row continuation of the previous student
+        if (!mainText || mainText.length < 4) continue;
+
         const prevStudent = result.length > 0 ? result[result.length - 1] : null;
 
-        // Case A: Same student name (and same number or blank number) repeated after a page break
+        // Case A: Same student name repeated after a page break
         if (
           prevStudent &&
           detectedName &&
@@ -1687,26 +1705,34 @@
           continue;
         }
 
-        // Case B: Continuation row with NO student name and NO student number
-        if (prevStudent && !detectedName && detectedNum === null) {
-          prevStudent.text = normalizeSubjectLineBreaks(
-            mergeContinuationText(prevStudent.text, mainText, prevStudent._lastRawEndedWithSpace)
-          );
-          prevStudent.originalText = prevStudent.text;
-          prevStudent._lastRawEndedWithSpace = mainRawEndedWithSpace;
+        // Case B: Continuation row with NO student name (e.g. page-break split sentence)
+        if (!detectedName) {
+          if (prevStudent && detectedNum === null) {
+            prevStudent.text = normalizeSubjectLineBreaks(
+              mergeContinuationText(prevStudent.text, mainText, prevStudent._lastRawEndedWithSpace)
+            );
+            prevStudent.originalText = prevStudent.text;
+            prevStudent._lastRawEndedWithSpace = mainRawEndedWithSpace;
+          } else if (mainText.length >= 15) {
+            // Save in fallback list ONLY in case the entire file has no student names at all
+            fallbackUnnamedParagraphs.push({
+              classInfo: currentClassInfo,
+              number: detectedNum,
+              text: normalizeSubjectLineBreaks(mainText)
+            });
+          }
           continue;
         }
 
-        // Create a new student entry
+        // Case C: Valid named student row
         const finalNumber = detectedNum !== null ? detectedNum : (result.length + 1);
-        const finalName = detectedName || `학생${result.length + 1}`;
         const normalizedText = normalizeSubjectLineBreaks(mainText);
 
         result.push({
           id: result.length + 1,
           classInfo: currentClassInfo,
           number: finalNumber,
-          rawName: finalName,
+          rawName: detectedName,
           text: normalizedText,
           originalText: normalizedText,
           ignoredKeys: [],
@@ -1717,6 +1743,20 @@
 
       if (detectedSchool) {
         appState.detectedSchoolName = detectedSchool;
+      }
+
+      // Only use fallbackUnnamedParagraphs if the entire file had zero named students
+      if (result.length === 0 && fallbackUnnamedParagraphs.length > 0) {
+        return fallbackUnnamedParagraphs.map((item, idx) => ({
+          id: idx + 1,
+          classInfo: item.classInfo,
+          number: item.number !== null ? item.number : (idx + 1),
+          rawName: `학생${idx + 1}`,
+          text: item.text,
+          originalText: item.text,
+          ignoredKeys: [],
+          manuallyReviewed: false
+        }));
       }
 
       return result;
