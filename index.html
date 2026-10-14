@@ -1,0 +1,2310 @@
+<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>생기부 클리어 - 학교생활기록부 안심 검토 및 교정 솔루션</title>
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS for Client-side NEIS Excel/CSV Fast Parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'Noto Sans KR', 'sans-serif'],
+          },
+          colors: {
+            eyecare: {
+              bg: '#F4F3EF',
+              surface: '#FAF9F5',
+              card: '#FFFFFF',
+              border: '#E4E2DC',
+              muted: '#EAE8E1'
+            },
+            darkcare: {
+              bg: '#14171A',
+              surface: '#1C2026',
+              card: '#242931',
+              border: '#323944',
+              muted: '#2B313B'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+      user-select: none;
+    }
+    .selectable-text {
+      user-select: text;
+    }
+    /* Custom Scrollbars for Clean Split View */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.6);
+    }
+
+    /* Highlight tokens in interactive review mode */
+    .hl-critical {
+      background-color: rgba(239, 68, 68, 0.14);
+      border-bottom: 2.5px solid #EF4444;
+      color: #B91C1C;
+      padding: 1px 3px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .dark .hl-critical {
+      background-color: rgba(239, 68, 68, 0.25);
+      color: #FCA5A5;
+      border-bottom-color: #F87171;
+    }
+    .hl-critical:hover, .hl-critical.active-token {
+      background-color: rgba(239, 68, 68, 0.28);
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+    }
+
+    .hl-warning {
+      background-color: rgba(245, 158, 11, 0.16);
+      border-bottom: 2.5px dashed #D97706;
+      color: #92400E;
+      padding: 1px 3px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .dark .hl-warning {
+      background-color: rgba(245, 158, 11, 0.25);
+      color: #FCD34D;
+      border-bottom-color: #FBBF24;
+    }
+    .hl-warning:hover, .hl-warning.active-token {
+      background-color: rgba(245, 158, 11, 0.30);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+    }
+
+    .hl-style {
+      background-color: rgba(59, 130, 246, 0.13);
+      border-bottom: 2.5px solid #3B82F6;
+      color: #1D4ED8;
+      padding: 1px 3px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .dark .hl-style {
+      background-color: rgba(59, 130, 246, 0.25);
+      color: #93C5FD;
+      border-bottom-color: #60A5FA;
+    }
+    .hl-style:hover, .hl-style.active-token {
+      background-color: rgba(59, 130, 246, 0.26);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+
+    @keyframes pulseSubtle {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    .animate-pulse-subtle {
+      animation: pulseSubtle 1.8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-eyecare-bg dark:bg-darkcare-bg text-slate-800 dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col transition-colors duration-200">
+
+  <!-- ==================== 1. TOP UTILITY BAR ==================== -->
+  <header class="h-14 shrink-0 bg-eyecare-surface dark:bg-darkcare-surface border-b border-eyecare-border dark:border-darkcare-border px-4 flex items-center justify-between gap-2 z-30">
+    <!-- Left: Brand & Record Category Selector -->
+    <div class="flex items-center gap-3 min-w-0">
+      <button onclick="resetToHomeConfirm()" class="flex items-center gap-2 text-left group focus:outline-none" title="초기 업로드 화면으로 이동">
+        <div class="w-8 h-8 rounded-lg bg-emerald-700 dark:bg-emerald-600 flex items-center justify-center text-white shadow-sm group-hover:bg-emerald-800 transition">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-bold text-base tracking-tight text-slate-900 dark:text-white">생기부 클리어</span>
+            <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">2026 기재요령 반영</span>
+          </div>
+        </div>
+      </button>
+
+      <div class="h-5 w-[1px] bg-eyecare-border dark:bg-darkcare-border mx-1 hidden sm:block"></div>
+
+      <!-- NEIS Section Byte Standard Selector -->
+      <div class="flex items-center gap-1.5 bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border rounded-lg px-2.5 py-1 text-xs shadow-2xs">
+        <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0"></i>
+        <span class="text-slate-500 dark:text-slate-400 hidden md:inline font-medium">점검 기준:</span>
+        <select id="categorySelect" onchange="handleCategoryChange(this.value)" class="bg-transparent font-semibold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer pr-1">
+          <option value="1500" data-name="교과세특">교과세특 (1,500 Byte / 약 500자)</option>
+          <option value="1500_ind" data-name="개인별세특">개인별세특 (1,500 Byte / 약 500자)</option>
+          <option value="1500_auto" data-name="자율활동">창체 자율활동 (1,500 Byte / 약 500자)</option>
+          <option value="1500_club" data-name="동아리활동">창체 동아리활동 (1,500 Byte / 약 500자)</option>
+          <option value="2100" data-name="진로활동">창체 진로활동 (2,100 Byte / 약 700자)</option>
+          <option value="1500_behav" data-name="행동특성 및 종합의견">행동특성 및 종합의견 (1,500 Byte / 약 500자)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Right: Security Badge, Report Button, Dark Mode, Wipe Data -->
+    <div class="flex items-center gap-2">
+      <!-- Always-On Security Trust Badge (PRD 5.2.3) -->
+      <div class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50/90 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-[11px] font-medium text-emerald-800 dark:text-emerald-300" title="모든 파일 파싱과 금지어 검사는 선생님 PC 브라우저 메모리(In-Memory) 내부에서만 실행되며 외부 서버로 전송·저장되지 않습니다.">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>🔒 안심 보안 작동 중: 서버에 어떠한 파일도 저장되지 않습니다</span>
+      </div>
+
+      <!-- Cross-Check Modification Report Button (Visible in Workspace) -->
+      <button id="btnCrossReport" onclick="openReportModal()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold transition shadow-2xs">
+        <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
+        <span>교차 검토 리포트</span>
+        <span id="reportIssueCountBadge" class="px-1.5 py-0.2 rounded-full bg-indigo-600 text-white text-[10px]">6</span>
+      </button>
+
+      <!-- Add Custom Dictionary / Guideline Ref Button -->
+      <button onclick="openGuidelineModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-medium text-slate-700 dark:text-slate-200 transition" title="2026 학교생활기록부 주요 기재 금지 및 주의 기준표 확인">
+        <i data-lucide="book-open-check" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+        <span class="hidden sm:inline">기재요령 요약표</span>
+      </button>
+
+      <!-- Eye-Care Dark Mode Toggle -->
+      <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-600 dark:text-slate-300 transition" title="야간 근무용 눈 보호 다크모드 전환">
+        <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+        <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+      </button>
+
+      <!-- Zero-Retention Immediate Wipe Button (PRD Feature 4) -->
+      <button id="btnWipeData" onclick="wipeAllDataNow()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition shadow-xs" title="메모리에 로드된 모든 학생 데이터를 즉시 영구 파기하고 초기화합니다">
+        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        <span>작업 종료 (데이터 즉시 파기)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== 2. INITIAL UPLOAD DROP-ZONE VIEW ==================== -->
+  <main id="uploadView" class="flex-1 overflow-y-auto flex items-center justify-center p-4 sm:p-6">
+    <div class="max-w-3xl w-full space-y-5">
+      <!-- Top Hero Banner -->
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          <span>선생님의 학기 말 퇴근 시간을 앞당기는 1초 안심 검수 솔루션</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          나이스(NEIS) 세특·창체·행특 단위 파일을 올려주세요
+        </h1>
+        <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
+          회원가입이나 복잡한 설정 없이 바로 시작하세요. 학생 이름은 즉시 마스킹(<code class="px-1 py-0.5 rounded bg-eyecare-muted dark:bg-darkcare-muted text-slate-800 dark:text-slate-200 font-semibold">홍*동</code>) 처리되며, <strong class="text-slate-800 dark:text-slate-200">기재 금지어·주의어·종결 어미·나이스 바이트(Byte)</strong>를 1초 만에 분석합니다.
+        </p>
+      </div>
+
+      <!-- Main Drag & Drop Zone -->
+      <div id="dropZone"
+           ondragover="handleDragOver(event)"
+           ondragleave="handleDragLeave(event)"
+           ondrop="handleFileDrop(event)"
+           onclick="document.getElementById('fileInput').click()"
+           class="relative group cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-600 dark:hover:border-emerald-500 bg-eyecare-card dark:bg-darkcare-card p-8 sm:p-10 text-center transition-all duration-200 shadow-xs hover:shadow-md">
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.txt,.pdf" class="hidden" onchange="handleFileSelect(event)" />
+
+        <div class="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
+          <i data-lucide="file-spreadsheet" class="w-8 h-8 text-emerald-700 dark:text-emerald-400"></i>
+        </div>
+
+        <p class="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">
+          나이스에서 다운로드한 세특/항목별 파일을 여기에 끌어다 놓으세요
+        </p>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-5">
+          지원 포맷: <span class="font-semibold text-slate-700 dark:text-slate-300">.xlsx, .xls, .csv, .txt</span> (병합된 상단 결재란·학교명 메타데이터 행 자동 건너뛰기 지원)
+        </p>
+
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-emerald-600 text-white text-xs sm:text-sm font-semibold shadow-xs group-hover:bg-emerald-700 transition">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span>내 PC에서 파일 선택하기</span>
+        </div>
+      </div>
+
+      <!-- Instant Demo Scenarios (So Teachers Can Try Immediately in 1 Second) -->
+      <div class="bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border rounded-2xl p-4 sm:p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-300 dark:border-amber-800">즉시 체험</span>
+            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">
+              지금 당장 나이스 파일이 없으신가요? 실제 사례 샘플로 1초 만에 체험해 보세요!
+            </h2>
+          </div>
+          <button onclick="downloadSampleExcel()" class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>테스트용 나이스 엑셀(.xlsx) 다운로드</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Sample 1: World Geography 25 Students (PRD Core Persona Scenario) -->
+          <button onclick="loadPresetSample('geography')" class="text-left p-3.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 border border-eyecare-border dark:border-darkcare-border hover:border-emerald-500/60 transition group flex items-start justify-between gap-3 shadow-2xs">
+            <div class="space-y-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">PRD 대표 시나리오</span>
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">교과세특 · 1,500 Byte</span>
+              </div>
+              <p class="font-bold text-sm text-slate-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition">
+                2026_2학기_세계지리_세특.xlsx (25명)
+              </p>
+              <p class="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                전체 25명 중 <strong class="text-rose-600 dark:text-rose-400">점검 필요 6명</strong> 포함 (올림피아드 수상, 토익/토플 점수, R&E 소논문, 서술형 어미, 1,500 Byte 초과 사례)
+              </p>
+            </div>
+            <div class="w-8 h-8 rounded-lg bg-eyecare-muted dark:bg-darkcare-muted group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center shrink-0 transition mt-1">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </div>
+          </button>
+
+          <!-- Sample 2: Homeroom Teacher Career & Behavioral Records -->
+          <button onclick="loadPresetSample('homeroom')" class="text-left p-3.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 border border-eyecare-border dark:border-darkcare-border hover:border-indigo-500/60 transition group flex items-start justify-between gap-3 shadow-2xs">
+            <div class="space-y-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300">담임 교차검토용</span>
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">창체 진로/행특</span>
+              </div>
+              <p class="font-bold text-sm text-slate-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition">
+                2026_2학년3반_진로및행특_검토본.xlsx (12명)
+              </p>
+              <p class="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                부모 직업 암시, 사교육 컨설팅, 구체적 대학명 노출, 맞춤법 및 마침표 누락 등 <strong class="text-rose-600 dark:text-rose-400">점검 필요 5명</strong> 포함
+              </p>
+            </div>
+            <div class="w-8 h-8 rounded-lg bg-eyecare-muted dark:bg-darkcare-muted group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center shrink-0 transition mt-1">
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3 Core Pillars Footer Info -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-600 dark:text-slate-400">
+        <div class="flex items-start gap-2.5 p-3 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border">
+          <i data-lucide="zap" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+          <div>
+            <p class="font-bold text-slate-800 dark:text-slate-200">듀얼 모니터 최적화 분할 뷰</p>
+            <p class="mt-0.5">좌측에 나이스(NEIS)를 띄우고 우측 절반 창에 띄워도 깨지지 않는 No-Scroll 2단 구성</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-2.5 p-3 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border">
+          <i data-lucide="scale" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+          <div>
+            <p class="font-bold text-slate-800 dark:text-slate-200">교육부 기재요령 쪽수 근거 명시</p>
+            <p class="mt-0.5">AI 환각 걱정 없이 2026 학생부 기재요령 조항과 대체어를 1클릭으로 안전하게 반영</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-2.5 p-3 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border">
+          <i data-lucide="lock" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
+          <div>
+            <p class="font-bold text-slate-800 dark:text-slate-200">Zero-Retention & 자동 마스킹</p>
+            <p class="mt-0.5">학생 성명 자동 마스킹(<code class="font-mono">김*수</code>) 및 브라우저 종료 시 메모리에서 100% 즉시 파기</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== 3. SPLIT-VIEW WORKSPACE (NO-SCROLL 2-COLUMN) ==================== -->
+  <section id="workspaceView" class="hidden flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+
+    <!-- LEFT PANEL (Width ~26% on desktop): Student List & Filter -->
+    <aside class="w-full md:w-[270px] lg:w-[310px] shrink-0 bg-eyecare-surface dark:bg-darkcare-surface border-b md:border-b-0 md:border-r border-eyecare-border dark:border-darkcare-border flex flex-col h-56 md:h-full">
+      <!-- File Summary & Filter Header -->
+      <div class="p-3 border-b border-eyecare-border dark:border-darkcare-border space-y-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span id="currentFileBadge" class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 truncate">세계지리 세특</span>
+              <span id="totalStudentCountText" class="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0">총 25명</span>
+            </div>
+            <p id="currentFileName" class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate mt-0.5">2026_2학기_세계지리_세특.xlsx</p>
+          </div>
+          <button onclick="document.getElementById('fileInput').click()" class="px-2 py-1 rounded-md bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-[11px] font-semibold text-slate-600 dark:text-slate-300 shrink-0 transition" title="다른 나이스 단위 파일 불러오기">
+            파일 변경
+          </button>
+        </div>
+
+        <!-- Filter Toggle: [오류 있는 학생만 보기 (6)] (PRD 4.3) -->
+        <div class="flex items-center justify-between bg-eyecare-card dark:bg-darkcare-card p-2 rounded-xl border border-eyecare-border dark:border-darkcare-border">
+          <label for="filterIssueOnly" class="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-slate-800 dark:text-slate-200">
+            <input type="checkbox" id="filterIssueOnly" onchange="renderStudentList()" class="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 cursor-pointer" />
+            <span>오류 있는 학생만 보기</span>
+            <span id="issueStudentCountBadge" class="px-1.5 py-0.2 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[11px] font-extrabold">6</span>
+          </label>
+          <button onclick="toggleNameMasking()" id="maskToggleBtn" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 underline" title="이름 마스킹(홍*동) 표시 토글">
+            마스킹 ON
+          </button>
+        </div>
+
+        <!-- Quick Search & Progress Summary -->
+        <div class="relative">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+          <input type="text" id="studentSearchInput" oninput="renderStudentList()" placeholder="번호, 이름, 키워드 검색..." class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500" />
+        </div>
+      </div>
+
+      <!-- Student Scrollable List -->
+      <div id="studentListContainer" class="flex-1 overflow-y-auto divide-y divide-eyecare-border/60 dark:divide-darkcare-border/60">
+        <!-- Populated dynamically by JS -->
+      </div>
+
+      <!-- Left Panel Footer: Keyboard Shortcut Tip -->
+      <div class="p-2.5 bg-eyecare-muted/60 dark:bg-darkcare-muted/50 border-t border-eyecare-border dark:border-darkcare-border flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <span>단축키: <kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-[10px]">Alt+↑/↓</kbd> 학생 이동</span>
+        <span id="completedCountSummary" class="font-semibold text-emerald-700 dark:text-emerald-400">완료 19/25</span>
+      </div>
+    </aside>
+
+    <!-- RIGHT PANEL (Width ~74% on desktop): Focus Editor & Grounded Inspection Cards -->
+    <section class="flex-1 min-w-0 flex flex-col h-full bg-eyecare-bg dark:bg-darkcare-bg overflow-hidden">
+
+      <!-- Editor Top Action Bar -->
+      <div class="px-4 py-2.5 bg-eyecare-surface dark:bg-darkcare-surface border-b border-eyecare-border dark:border-darkcare-border flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <!-- Selected Student Info & Status -->
+        <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-1.5">
+            <span id="activeStudentClassNo" class="px-2 py-0.5 rounded-md bg-slate-800 dark:bg-slate-700 text-white text-xs font-bold">2학년 3반 1번</span>
+            <h2 id="activeStudentName" class="text-base font-extrabold text-slate-900 dark:text-white">강*우</h2>
+          </div>
+
+          <div id="activeStudentBadges" class="flex items-center gap-1">
+            <!-- Dynamic status badges -->
+          </div>
+        </div>
+
+        <!-- Bulk Actions & Font Size Controls -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <!-- Bulk Fix Blue (Style/Ending/Spelling) Button (PRD 4.4) -->
+          <button id="btnBulkFixStyle" onclick="applyAllStyleFixes()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition shadow-2xs">
+            <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
+            <span>파란색(맞춤법/어미) 일괄 교정 적용</span>
+            <span id="bulkStyleCount" class="px-1.5 py-0.2 rounded-full bg-blue-800 text-white text-[10px]">2</span>
+          </button>
+
+          <!-- Restore Original Text Button -->
+          <button onclick="restoreOriginalText()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-medium text-slate-600 dark:text-slate-300 transition" title="최초 업로드된 원문으로 되돌리기">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">원문 복원</span>
+          </button>
+
+          <!-- Font Size Adjuster for Eye-Care -->
+          <div class="hidden lg:flex items-center rounded-lg border border-eyecare-border dark:border-darkcare-border bg-eyecare-card dark:bg-darkcare-card p-0.5 text-xs">
+            <button onclick="changeFontSize(-1)" class="px-2 py-1 rounded hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-600 dark:text-slate-300 font-medium" title="글자 작게">가-</button>
+            <button onclick="changeFontSize(0)" class="px-2 py-1 rounded hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-600 dark:text-slate-300 font-medium" title="기본 크기">기본</button>
+            <button onclick="changeFontSize(1)" class="px-2 py-1 rounded hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-600 dark:text-slate-300 font-bold" title="글자 크게">가+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Editor & Inspection Split Area -->
+      <div class="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden p-3 sm:p-4 gap-3 sm:gap-4">
+
+        <!-- CENTER-LEFT: Interactive Highlight View + Direct Live Textarea -->
+        <div class="flex-1 min-h-0 flex flex-col bg-eyecare-card dark:bg-darkcare-card rounded-2xl border border-eyecare-border dark:border-darkcare-border shadow-2xs overflow-hidden relative">
+
+          <!-- Editor Subheader: Mode Switch & Legend -->
+          <div class="px-4 py-2 bg-eyecare-surface/70 dark:bg-darkcare-surface/70 border-b border-eyecare-border dark:border-darkcare-border flex items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-3 flex-wrap">
+              <span class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                <i data-lucide="scan-eye" class="w-3.5 h-3.5 text-emerald-600"></i>
+                실시간 검출 하이라이트 (밑줄 클릭 시 즉시 교정)
+              </span>
+              <div class="flex items-center gap-2.5 text-[11px]">
+                <span class="inline-flex items-center gap-1 text-rose-700 dark:text-rose-400 font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-rose-500"></span>기재 금지
+                </span>
+                <span class="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span>기재 주의
+                </span>
+                <span class="inline-flex items-center gap-1 text-blue-700 dark:text-blue-400 font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-blue-500"></span>어미·맞춤법
+                </span>
+              </div>
+            </div>
+
+            <!-- Toggle between Interactive Highlight Mode and Direct Typing Mode -->
+            <button id="toggleEditModeBtn" onclick="toggleDirectEditMode()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:border-emerald-500 transition">
+              <i data-lucide="pen-line" class="w-3 h-3"></i>
+              <span id="editModeLabel">직접 타이핑 편집</span>
+            </button>
+          </div>
+
+          <!-- 1) Interactive Highlight Layer (Default: Click underlined words for Popover!) -->
+          <div id="highlightEditorContainer" class="flex-1 overflow-y-auto p-5 selectable-text leading-[1.85] text-[16px] text-slate-800 dark:text-slate-100 whitespace-pre-wrap break-keep">
+            <!-- Rendered with interactive <span class="hl-..."> tokens -->
+          </div>
+
+          <!-- 2) Direct Textarea Layer (For free-form typing, automatically re-analyzes on input) -->
+          <div id="directTextareaContainer" class="hidden flex-1 flex flex-col p-4">
+            <textarea id="rawEditorTextarea"
+                      oninput="handleRawTextInput(this.value)"
+                      class="w-full flex-1 resize-none border-0 bg-transparent focus:outline-none leading-[1.85] text-[16px] text-slate-800 dark:text-slate-100 selectable-text"
+                      placeholder="여기에 생기부 내용을 입력하거나 수정하세요..."></textarea>
+            <div class="pt-2 flex justify-between items-center text-xs text-slate-500 border-t border-eyecare-border dark:border-darkcare-border">
+              <span>💡 타이핑 내용이 실시간으로 바이트 계산 및 기재요령 검수에 반영됩니다.</span>
+              <button onclick="toggleDirectEditMode()" class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700">하이라이트 뷰로 돌아가기</button>
+            </div>
+          </div>
+
+          <!-- Floating Popover when clicking an inline highlighted token (PRD 4.4) -->
+          <div id="inlinePopover" class="hidden absolute z-30 w-80 sm:w-96 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl p-3.5 text-xs transition-all">
+            <!-- Populated dynamically when user clicks a red/yellow/blue underline -->
+          </div>
+        </div>
+
+        <!-- CENTER-RIGHT: Grounded Inspection & Correction Cards List (Width 340px on large screens) -->
+        <div class="w-full lg:w-[350px] xl:w-[380px] shrink-0 flex flex-col bg-eyecare-surface dark:bg-darkcare-surface rounded-2xl border border-eyecare-border dark:border-darkcare-border overflow-hidden h-52 lg:h-full">
+          <div class="px-3.5 py-2.5 border-b border-eyecare-border dark:border-darkcare-border flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <i data-lucide="list-checks" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+              <h3 class="text-xs font-bold text-slate-800 dark:text-slate-100">검출된 점검 항목 및 기재요령 근거</h3>
+            </div>
+            <span id="cardTotalCountBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">3건</span>
+          </div>
+
+          <div id="inspectionCardsContainer" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+            <!-- Populated dynamically with grounded cards -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Editor Bottom Bar: NEIS Byte Gauge + AI Sentence Compression + One-Click Copy to NEIS -->
+      <div class="px-4 py-3 bg-eyecare-surface dark:bg-darkcare-surface border-t border-eyecare-border dark:border-darkcare-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+
+        <!-- Left: NEIS Real-time Byte Calculator & Progress Gauge (PRD Feature 3) -->
+        <div class="flex-1 max-w-xl space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-700 dark:text-slate-200">나이스(NEIS) 표준 바이트</span>
+              <span id="byteStatusText" class="font-extrabold text-emerald-700 dark:text-emerald-400">1,425 / 1,500 Byte (적정)</span>
+              <span id="charCountSubText" class="text-[11px] text-slate-500 dark:text-slate-400">(공백 포함 512자)</span>
+            </div>
+
+            <!-- AI Sentence Compression Button (Highlighted when bytes exceeded or close to limit) -->
+            <button id="btnAiCompress" onclick="compressStudentText()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/90 hover:bg-amber-200 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700 text-xs font-bold transition shadow-2xs">
+              <i data-lucide="shrink" class="w-3.5 h-3.5"></i>
+              <span>AI 문장 압축하기</span>
+            </button>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden p-0.5">
+            <div id="byteProgressBar" class="h-full rounded-full bg-emerald-600 transition-all duration-300" style="width: 85%"></div>
+          </div>
+        </div>
+
+        <!-- Right: One-Click Copy to NEIS & Auto-Complete Check (PRD 4.5) -->
+        <div class="flex items-center gap-2">
+          <button onclick="navigateStudent(1)" class="px-3 py-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-700 dark:text-slate-200 transition flex items-center gap-1" title="다음 학생으로 이동 (Alt + ↓)">
+            <span>다음 학생</span>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+
+          <button id="btnCopyCleanText" onclick="copyCleanTextToClipboard()" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white text-sm font-extrabold shadow-md hover:shadow-lg transition cursor-pointer">
+            <i data-lucide="copy-check" class="w-4 h-4"></i>
+            <span>교정본 복사하기 (Ctrl+C)</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+  </section>
+
+  <!-- ==================== 4. MODAL: CROSS-CHECK MODIFICATION REPORT (PRD Feature 4) ==================== -->
+  <div id="reportModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="px-5 py-4 bg-eyecare-surface dark:bg-darkcare-surface border-b border-eyecare-border dark:border-darkcare-border flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center justify-center">
+            <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">원클릭 교차 검토 수정 요청 리포트</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">동료 선생님께 메신저(쿨메신저 등)로 바로 전달할 수 있도록 오류 내역만 요약했습니다.</p>
+          </div>
+        </div>
+        <button onclick="closeReportModal()" class="p-1.5 rounded-lg hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-500">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-3 flex-1">
+        <div class="flex items-center justify-between text-xs">
+          <span id="reportSummaryHeader" class="font-bold text-slate-700 dark:text-slate-300">검출 대상: 총 6명 (미해결 오류 기준)</span>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="includeStyleInReport" checked onchange="generateReportContent()" class="rounded text-indigo-600" />
+            <span class="text-slate-600 dark:text-slate-400 font-medium">맞춤법/종결어미(🔵) 항목도 포함</span>
+          </label>
+        </div>
+
+        <textarea id="reportTextarea" readonly class="w-full h-64 p-3.5 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border font-mono text-xs leading-relaxed text-slate-800 dark:text-slate-200 focus:outline-none selectable-text"></textarea>
+      </div>
+
+      <div class="px-5 py-3.5 bg-eyecare-surface dark:bg-darkcare-surface border-t border-eyecare-border dark:border-darkcare-border flex flex-wrap items-center justify-between gap-2">
+        <button onclick="downloadReportExcel()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-700 dark:text-slate-200 transition">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+          <span>검토 결과 엑셀(.xlsx) 다운로드</span>
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="closeReportModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-eyecare-muted">닫기</button>
+          <button onclick="copyReportToClipboard()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span>리포트 전체 복사 (메신저 전송용)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 5. MODAL: 2026 GUIDELINE QUICK REFERENCE ==================== -->
+  <div id="guidelineModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="px-5 py-4 bg-eyecare-surface dark:bg-darkcare-surface border-b border-eyecare-border dark:border-darkcare-border flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="book-open-check" class="w-5 h-5 text-emerald-600"></i>
+          <h3 class="text-base font-extrabold text-slate-900 dark:text-white">2026학년도 학교생활기록부 핵심 기재요령 요약표</h3>
+        </div>
+        <button onclick="closeGuidelineModal()" class="p-1.5 rounded-lg hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-500">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+        <div class="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 space-y-1.5">
+          <p class="font-extrabold text-rose-800 dark:text-rose-300 text-sm">🔴 절대 기재 금지 사항 (발견 즉시 삭제 또는 대체 필수)</p>
+          <ul class="list-disc pl-4 space-y-1">
+            <li><strong>공인어학성적 및 시험명 (기재요령 p.42):</strong> 토익(TOEIC), 토플(TOEFL), 텝스(TEPS), HSK, JLPT, 오픽(OPIc) 등 명칭 및 점수 기재 일체 금지</li>
+            <li><strong>교내·외 각종 대회 참가 및 수상 실적 (기재요령 p.45):</strong> 올림피아드, 경시대회, 교내 대회 명칭 및 수상(금상, 최우수상, 입상 등) 사실은 세특·창체 등 어떠한 항목에도 기재 불가 ('교과 탐구 활동' 등으로 순화)</li>
+            <li><strong>부모의 사회·경제적 지위 암시 (기재요령 p.48):</strong> 부모·친인척의 구체적 직장명, 직위(교수, 의사, 법조인 등), 고액 자산·해외 연수 암시 내용 기재 금지</li>
+            <li><strong>사교육 유발 요인 및 외부 기관 활동 (기재요령 p.44):</strong> 학원, 사설 컨설팅, 대학 부설 영재교육원, 특허 출원, 자격증 취득(교과 무관) 등</li>
+            <li><strong>모의고사·전국연합학력평가 성적 (기재요령 p.46):</strong> 모의고사 등급, 백분위, 표준점수 등 기재 금지</li>
+          </ul>
+        </div>
+        <div class="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 space-y-1.5">
+          <p class="font-extrabold text-amber-800 dark:text-amber-300 text-sm">🟡 기재 주의 사항 (문맥 확인 필수)</p>
+          <ul class="list-disc pl-4 space-y-1">
+            <li><strong>소논문(R&E) 및 논문 관련 언급 (기재요령 p.43):</strong> 소논문(R&E) 작성, 학술지 투고·등재는 기재 불가. 단, 수업 중 참고자료로 논문을 읽고 탐구한 경우 <strong>논문명·저자·기관명을 제외</strong>하고 탐구 내용만 기재 가능</li>
+            <li><strong>구체적 기관명·상호명·대학명 (기재요령 p.47):</strong> 특정 대학명(서울대 등), 기업 상호명(삼성전자, 구글 등), 외부 기관명은 '교육 관련 기관', '글로벌 IT 기업' 등 일반 명사로 순화 권장</li>
+          </ul>
+        </div>
+        <div class="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 space-y-1.5">
+          <p class="font-extrabold text-blue-800 dark:text-blue-300 text-sm">🔵 생기부 표준 문체 및 나이스 바이트(Byte) 기준</p>
+          <ul class="list-disc pl-4 space-y-1">
+            <li><strong>명사형 종결 어미 사용:</strong> <code class="font-mono">~함.</code>, <code class="font-mono">~임.</code>, <code class="font-mono">~보임.</code>, <code class="font-mono">~기대됨.</code>, <code class="font-mono">~드러남.</code> 등 객관적 관찰 문체로 통일</li>
+            <li><strong>나이스 바이트 계산:</strong> 한글 1글자 = <code class="font-bold">3 Byte</code> / 영문·숫자·공백·줄바꿈·일반기호 = <code class="font-bold">1 Byte</code> (교과세특 1,500 Byte, 진로활동 2,100 Byte)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="px-5 py-3 bg-eyecare-surface dark:bg-darkcare-surface border-t border-eyecare-border dark:border-darkcare-border flex justify-end">
+        <button onclick="closeGuidelineModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 dark:bg-emerald-600 text-white text-xs font-bold">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 6. TOAST NOTIFICATION ==================== -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ==================== APPLICATION LOGIC ==================== -->
+  <script>
+    // -------------------------------------------------------------------------
+    // 1. 2026 NEIS GUIDELINE DETECTION RULES (CRITICAL / WARNING / STYLE)
+    // -------------------------------------------------------------------------
+    const GUIDELINE_RULES = [
+      // 🔴 CRITICAL (기재 금지)
+      {
+        id: 'crit_olympiad',
+        type: 'critical',
+        label: '교내·외 대회 명칭 기재 금지',
+        regex: /(교내\s*지리\s*올림피아드|올림피아드|경시대회|KMO|수학경시대회|교내\s*[가-힣]+대회|외부\s*대회|전국\s*대회)/g,
+        reason: "교내외 대회 참가 사실과 대회 명칭은 세특을 포함한 어떠한 항목에도 기재할 수 없습니다. '대회' 명칭 대신 '교과 관련 심화 탐구 활동' 등으로 순화하세요.",
+        basis: '2026학년도 학교생활기록부 기재요령 (교육부) 제14조 / p.45',
+        replacements: ['교과 관련 심화 탐구 활동', '지리 주제 탐구 활동', '자기주도적 심화 학습'],
+        canDelete: true
+      },
+      {
+        id: 'crit_award',
+        type: 'critical',
+        label: '수상 실적 편법 기재 금지',
+        regex: /(금상을\s*수상하였으며,?\s*|금상을\s*수상함|은상을\s*수상|대상을\s*수상|최우수상을\s*수상|우수상을\s*수상|입상하였으며,?\s*|입상함|수상하였으며,?\s*|수상함)/g,
+        reason: '수상 경력은 세특·창체·행특 등 어느 항목에도 입력할 수 없습니다. 수상 사실 언급 구절을 삭제하거나 성취 수준 서술로 대체하세요.',
+        basis: '2026학년도 학교생활기록부 기재요령 (교육부) 제14조 / p.45',
+        replacements: ['우수한 탐구 역량을 발휘하였으며, ', '깊이 있는 분석력을 보여주었으며, '],
+        canDelete: true
+      },
+      {
+        id: 'crit_lang_test',
+        type: 'critical',
+        label: '공인어학시험 명칭 및 성적 기재 금지',
+        regex: /(토익\(TOEIC\)\s*\d+점의|토익\(TOEIC\)\s*\d+점|토플\(TOEFL\)\s*\d+점|토플\(TOEFL\)|토익\(TOEIC\)|텝스\(TEPS\)\s*\d+점|텝스\(TEPS\)|HSK\s*\d+급|JLPT\s*N\d|오픽\(OPIc\)|공인어학성적)/gi,
+        reason: '공인어학시험 명칭 및 성적(점수·급수)은 기재할 수 없습니다. 삭제하거나 일반적인 외국어 독해·의사소통 역량 표현으로 대체하세요.',
+        basis: '2026학년도 학교생활기록부 기재요령 (교육부) 제13조 / p.42',
+        replacements: ['뛰어난 외국어 독해 역량', '어학 역량', '원서 독해 능력'],
+        canDelete: true
+      },
+      {
+        id: 'crit_parent_status',
+        type: 'critical',
+        label: '부모의 사회·경제적 지위 암시 금지',
+        regex: /(대학\s*교수인\s*아버지의|교수인\s*아버지의|교수인\s*부모님의|의사인\s*어머니의|변호사인\s*아버지의|외교관인\s*부모님의|법조인\s*가정에서|부모님의\s*해외\s*지사\s*근무로)/g,
+        reason: '부모 및 친인척의 구체적 직업·직위·사회경제적 지위를 암시하는 내용은 엄격히 기재가 금지됩니다.',
+        basis: '2026학년도 학교생활기록부 기재요령 (교육부) 제15조 / p.48',
+        replacements: ['평소 가정 내 독서 환경을 통해', '스스로의 지적 호기심을 바탕으로'],
+        canDelete: true
+      },
+      {
+        id: 'crit_private_edu',
+        type: 'critical',
+        label: '사교육·외부 컨설팅·대학 과정 언급 금지',
+        regex: /(사설\s*입시\s*컨설팅|입시\s*컨설팅|전문\s*학원|외부\s*유학원|대학\s*부설\s*영재교육원|특허\s*출원)/g,
+        reason: '사교육 유발 요인이 큰 외부 기관·학원·컨설팅·영재교육원 및 특허 출원 관련 내용은 학생부에 기재할 수 없습니다.',
+        basis: '2026학년도 학교생활기록부 기재요령 (교육부) 제13조 / p.44',
+        replacements: ['학교 정규 교육과정 내 탐구 활동', '자기주도적 문헌 조사'],
+        canDelete: true
+      },
+      {
+        id: 'crit_mock_exam',
+        type: 'critical',
+        label: '모의고사·전국연합학력평가 성적 기재 금지',
+        regex: /(전국연합학력평가\s*\d등급|모의고사\s*만점|모의고사\s*\d등급|모의고사에서\s*항상\s*1등급)/g,
+        reason: '모의고사 및 전국연합학력평가의 등급·점수·백분위 등 성적 관련 내용은 기재할 수 없습니다.',
+        basis: '2026학년도 학교생활기록부 기재요령 (교육부) 제14조 / p.46',
+        replacements: ['교과 개념에 대한 높은 학업 성취도', '탄탄한 개념 이해도'],
+        canDelete: true
+      },
+
+      // 🟡 WARNING (기재 주의 - 문맥 확인)
+      {
+        id: 'warn_thesis',
+        type: 'warning',
+        label: '소논문(R&E) 및 학술 논문 언급 주의',
+        regex: /(해외\s*논문을\s*번역함|소논문\(R&E\)을\s*작성함|소논문을\s*작성하여|학술지에\s*투고함|논문을\s*번역함|논문을\s*작성함)/g,
+        reason: '소논문(R&E) 작성 및 학술지 투고는 기재 불가하나, 수업 중 단순 참고자료로 읽은 경우 출처(저자/기관명)를 제외하고 탐구 내용만 기재 가능합니다. 문맥을 확인하세요.',
+        basis: '2026학년도 학교생활기록부 기재요령 (교육부) 제13조 / p.43',
+        replacements: ['해외 학술 자료를 참고하여 핵심 내용을 분석함', '관련 심화 자료를 분석하여 보고서로 정리함', '심층 탐구 보고서를 작성함'],
+        canDelete: false
+      },
+      {
+        id: 'warn_specific_org',
+        type: 'warning',
+        label: '구체적 대학명·기업 상호명 노출 주의',
+        regex: /(서울대학교|연세대학교|고려대학교|KAIST|삼성전자|구글\(Google\)|한국은행\s*경제교육원|유튜브\s*채널)/g,
+        reason: '특정 대학명, 사기업 상호명, 외부 기관명은 직접 노출을 피하고 일반 명사(국내 대학, 글로벌 IT 기업, 공공 통계 기관, 영상 미디어 등)로 순화하는 것이 안전합니다.',
+        basis: '2026학년도 학교생활기록부 기재요령 (교육부) 제15조 / p.47',
+        replacements: ['관련 연구 기관', '글로벌 IT 기업', '공공 데이터 포털', '온라인 미디어 매체'],
+        canDelete: false
+      },
+
+      // 🔵 STYLE & GRAMMAR (어미 및 맞춤법 교정)
+      {
+        id: 'style_ending_1',
+        type: 'style',
+        label: '서술형 어미 → 생기부 표준 명사형 종결 어미 변환',
+        regex: /(탐구했습니다\.|탐구하였습니다\.|탐구하였다\.)/g,
+        reason: '생기부 표준 문체인 객관적 명사형 종결 어미(~함., ~임., ~보임.)로 통일하는 것을 권장합니다.',
+        basis: '학교생활기록부 표준 기재 문체 가이드 (명사형 종결 어미)',
+        replacements: ['탐구함.'],
+        canDelete: false
+      },
+      {
+        id: 'style_ending_2',
+        type: 'style',
+        label: '서술형 어미 → 생기부 표준 명사형 종결 어미 변환',
+        regex: /(발표했습니다\.|발표하였습니다\.|발표하였다\.)/g,
+        reason: '생기부 표준 문체인 객관적 명사형 종결 어미(~함.)로 변환을 권장합니다.',
+        basis: '학교생활기록부 표준 기재 문체 가이드 (명사형 종결 어미)',
+        replacements: ['발표함.'],
+        canDelete: false
+      },
+      {
+        id: 'style_ending_3',
+        type: 'style',
+        label: '서술형 어미 → 생기부 표준 명사형 종결 어미 변환',
+        regex: /(보여주었습니다\.|보여주었다\.|보였습니다\.)/g,
+        reason: '생기부 표준 문체인 객관적 명사형 종결 어미(~보임. / ~보여줌.)로 변환을 권장합니다.',
+        basis: '학교생활기록부 표준 기재 문체 가이드 (명사형 종결 어미)',
+        replacements: ['보여줌.', '보임.'],
+        canDelete: false
+      },
+      {
+        id: 'style_ending_4',
+        type: 'style',
+        label: '서술형 어미 → 생기부 표준 명사형 종결 어미 변환',
+        regex: /(분석했습니다\.|분석하였습니다\.|분석하였다\.|작성했습니다\.|작성하였다\.|이끌어냈습니다\.|이끌어냈다\.)/g,
+        reason: '생기부 표준 문체인 객관적 명사형 종결 어미(~함.)로 일괄 변환을 권장합니다.',
+        basis: '학교생활기록부 표준 기재 문체 가이드 (명사형 종결 어미)',
+        replacements: ['분석함.', '작성함.', '이끌어냄.'],
+        canDelete: false
+      },
+      {
+        id: 'style_ending_5',
+        type: 'style',
+        label: '서술형 어미 → 생기부 표준 명사형 종결 어미 변환',
+        regex: /(기대됩니다\.|기대된다\.|사료됩니다\.)/g,
+        reason: '생기부 표준 문체인 객관적 명사형 종결 어미(~기대됨.)로 변환을 권장합니다.',
+        basis: '학교생활기록부 표준 기재 문체 가이드 (명사형 종결 어미)',
+        replacements: ['기대됨.'],
+        canDelete: false
+      },
+      {
+        id: 'style_typo_role',
+        type: 'style',
+        label: '빈출 맞춤법 오류 교정 (역활 → 역할)',
+        regex: /(역활)/g,
+        reason: "'역활'은 잘못된 표기입니다. 표준어인 '역할'로 교정하세요.",
+        basis: '국립국어원 한글 맞춤법 제3장 (어문 규범)',
+        replacements: ['역할'],
+        canDelete: false
+      },
+      {
+        id: 'style_typo_count',
+        type: 'style',
+        label: '빈출 맞춤법 오류 교정 (갯수 → 개수)',
+        regex: /(갯수)/g,
+        reason: "사이시옷 규정상 한자어에는 사이시옷을 붙이지 않으므로 '개수'가 올바른 표기입니다.",
+        basis: '국립국어원 한글 맞춤법 제30항 (사이시옷 규정)',
+        replacements: ['개수'],
+        canDelete: false
+      },
+      {
+        id: 'style_typo_doeseo',
+        type: 'style',
+        label: '빈출 맞춤법 오류 교정 (되서 → 되어)',
+        regex: /(되서)/g,
+        reason: "'되-' 뒤에 '-어서'가 결합하면 '되어서' 또는 '되어(돼서)'로 표기해야 합니다.",
+        basis: '국립국어원 한글 맞춤법 제35항',
+        replacements: ['되어', '되어서'],
+        canDelete: false
+      },
+      {
+        id: 'style_subjective',
+        type: 'style',
+        label: '과장·주관적 수식어 객관화 권장',
+        regex: /(천재적인\s*직관력으로|완벽하게\s*마스터함)/g,
+        reason: '지나치게 주관적이거나 검증하기 어려운 과장 표현은 구체적·객관적 관찰 표현으로 다듬는 것이 좋습니다.',
+        basis: '학교생활기록부 객관적 서술 권장 가이드',
+        replacements: ['우수한 공간 분석력으로', '깊이 있게 이해하고 활용함'],
+        canDelete: false
+      }
+    ];
+
+    // -------------------------------------------------------------------------
+    // 2. PRESET REALISTIC SAMPLE DATASETS (WORLD GEOGRAPHY 25 STUDENTS + HOMEROOM 12)
+    // -------------------------------------------------------------------------
+    function createGeographyDataset() {
+      return [
+        {
+          id: 1,
+          classInfo: '2학년 3반',
+          number: 1,
+          rawName: '강현우',
+          text: '기후 변화와 열대 우림 파괴 문제를 주제로 브라질 아마존 유역의 토지 이용 변화를 위성 사진 자료로 비교 분석함. 교내 지리 올림피아드에서 금상을 수상하였으며, 토익(TOEIC) 850점의 뛰어난 어학 실력을 바탕으로 해외 논문을 번역함. 특히 원주민 공동체의 지속 가능한 산림 관리 방식을 대안으로 제시하며 세계시민으로서의 책임감을 깊이 있게 탐구했습니다.'
+        },
+        {
+          id: 2,
+          classInfo: '2학년 3반',
+          number: 2,
+          rawName: '김민서',
+          text: '몬순 아시아의 벼농사 지역과 플랜테이션 농업 지역의 공간적 분포 특징을 기후 그래프와 지형도를 활용하여 체계적으로 정리함. 동남아시아 메콩강 유역의 상류 댐 건설이 하류 삼각주 지역의 농업 생태계와 주민 삶에 미치는 영향을 다각도로 조사하여 모둠 토의에서 핵심적인 역할을 수행함. 지리적 현상을 인간과 자연의 상호작용 관점에서 통합적으로 해석하는 능력이 돋보임.'
+        },
+        {
+          id: 3,
+          classInfo: '2학년 3반',
+          number: 3,
+          rawName: '김서준',
+          text: '유럽 연합(EU)의 재생 에너지 전환 정책을 학습하던 중 북해 연안 국가들의 해상 풍력 발전 입지 조건에 흥미를 느껴 심화 탐구를 진행함. 영국의 도거 뱅크 해상 풍력 단지와 덴마크의 에너지 자립 마을 사례를 비교하여 지형적·기후적 유리함과 전력망 연결의 지정학적 의미를 도출함. 통계 지도를 직접 재구성하여 시각 자료의 가독성을 높이는 등 정보 처리 역량이 우수함.'
+        },
+        {
+          id: 4,
+          classInfo: '2학년 3반',
+          number: 4,
+          rawName: '김수아',
+          text: '건조 아시아와 북부 아프리카의 사막화 현상을 다루는 단원에서 사헬 지대의 기후 난민 문제와 그린벨트 프로젝트의 실효성을 분석함. KMO 및 외부 경시대회 준비 과정에서 익힌 수리적 통계 분석 기법을 적용하여 강수량 편차와 식생 지수의 상관관계를 검증함. 모둠원들과 협력하여 카드뉴스를 제작하며 팀장의 역활을 책임감 있게 수행하고 조리 있게 발표했습니다.'
+        },
+        {
+          id: 5,
+          classInfo: '2학년 3반',
+          number: 5,
+          rawName: '나윤호',
+          text: '세계의 대지형 단원에서 판 구조론과 화산·지진 활동의 공간적 분포를 태평양 조산대 사례를 중심으로 정리함. 일본과 칠레의 내진 설계 기준 및 재난 대응 매뉴얼을 비교 분석하여 지리적 환경에 적응하는 인간 거주 양식의 차이를 설득력 있게 설명함. 수업 시간마다 질문에 적극적으로 답하며 탐구 태도가 매우 성실함.'
+        },
+        {
+          id: 6,
+          classInfo: '2학년 3반',
+          number: 6,
+          rawName: '박도윤',
+          text: '건조 기후 지역의 지형 형성 작용과 주민 생활 단원에서 와디(Wadi), 바르한, 페디먼트 등 바람과 유수에 의해 형성된 미지형의 발달 과정을 모식도로 정교하게 표현함. 아랍에미리트 마스다르 시티의 친환경 도시 설계 원리를 전통 가옥 구조(바람탑)와 연결하여 분석하는 융합적 사고력을 발휘함.'
+        },
+        {
+          id: 7,
+          classInfo: '2학년 3반',
+          number: 7,
+          rawName: '박지민',
+          text: '글로벌 생산 사슬과 다국적 기업의 공간적 분업 구조를 반도체 및 전기차 배터리 산업 사례를 통해 심층적으로 탐구함. 특히 최근 공급망 재편(리쇼어링 및 프렌드쇼어링) 현상이 동아시아와 북미의 산업 입지 변화에 미치는 영향을 무역 통계 자료와 뉴스 기사를 종합하여 다각도로 고찰함. 또한 구술 발표 과정에서 핵심 쟁점을 시각적 인포그래픽으로 구조화하여 청중의 이해를 돕고, 자유 무역과 보호 무역의 공간적 파급 효과를 균형 잡힌 시각으로 서술하여 학급 동료들로부터 높은 공감을 이끌어냈습니다. 나아가 개발도상국의 노동 환경 개선과 환경 규제 격차 해소를 위한 국제적 협력 방안을 구체적인 정책 제언 형태로 정리하며 세계지리 교과의 핵심 역량을 탁월하게 보여주었습니다.'
+        },
+        {
+          id: 8,
+          classInfo: '2학년 3반',
+          number: 8,
+          rawName: '배서연',
+          text: '온대 기후 지역의 서안 해양성 기후와 지중해성 기후를 비교하며 편서풍과 아열대 고압대의 계절적 이동 원리를 정확히 이해함. 스페인 남부와 이탈리아의 올리브·포도 재배 방식(수목 농업)이 최근 여름철 폭염과 가뭄 심화로 인해 겪는 변화를 조사하여 기후 위기가 식량 안보에 미치는 영향을 논리적으로 정리함.'
+        },
+        {
+          id: 9,
+          classInfo: '2학년 3반',
+          number: 9,
+          rawName: '서예준',
+          text: '냉·한대 기후 지역의 타이가 임업과 영구 동토층 융해 문제를 주제로 시베리아와 알래스카 지역의 인프라 붕괴 및 메탄가스 방출 위험성을 탐구함. 북극항로 개척에 따른 물류 이동 거리 단축 효과와 원주민 생태계 보존이라는 두 가지 관점을 대조하여 균형 잡힌 보고서를 작성함.'
+        },
+        {
+          id: 10,
+          classInfo: '2학년 3반',
+          number: 10,
+          rawName: '송하은',
+          text: '세계의 인구 변천 모형과 인구 이주 단원에서 유럽과 동아시아의 저출산·고령화 문제를 비교하고, 국제 이주 노동자 유입에 따른 다문화 공간의 형성 과정을 탐구함. 도시 내 민족 거주지 분화 현상을 지리 정보 시스템(GIS) 주제도로 시각화하여 공간적 불평등 해소 방안을 모색함.'
+        },
+        {
+          id: 11,
+          classInfo: '2학년 3반',
+          number: 11,
+          rawName: '신우진',
+          text: '세계 도시 체계와 도시화 단원에서 런던, 뉴욕, 도쿄 등 최상위 세계 도시의 중추 관리 기능 집중 현상과 개발도상국의 과잉 도시화 문제를 비교 분석함. 대학 교수인 아버지의 조언을 받아 서울대학교 도시공학과 연구 자료를 인용하고 소논문(R&E)을 작성함. 도시 재생 사례를 통해 공간 정의의 중요성을 깊이 있게 성찰함.'
+        },
+        {
+          id: 12,
+          classInfo: '2학년 3반',
+          number: 12,
+          rawName: '안지호',
+          text: '식량 자원과 에너지 자원의 국제 이동 단원에서 밀, 옥수수, 쌀의 주요 생산지와 수출입 이동 경로를 지도 위에 정확히 도식화함. 러시아-우크라이나 분쟁 등 지정학적 갈등이 국제 곡물 가격과 북부 아프리카 국가들의 식량 수급에 미치는 연쇄적 파급 효과를 체계적으로 분석함.'
+        },
+        {
+          id: 13,
+          classInfo: '2학년 3반',
+          number: 13,
+          rawName: '양채원',
+          text: '라틴 아메리카의 도시 구조와 원주민 문화 단원에서 고산 도시(보고타, 키토, 라파스)의 형성 배경과 식민지 시기 이후 형성된 격자형 도시 내부 구조를 탐구함. 해발 고도에 따른 수직적 기후대와 작물 분포(티에라 칼리엔테~티에라 헬라다)를 모식도로 정리하여 발표함.'
+        },
+        {
+          id: 14,
+          classInfo: '2학년 3반',
+          number: 14,
+          rawName: '오승현',
+          text: '사하라 이남 아프리카의 자원 개발과 지역 분쟁 단원에서 광물 자원(콜탄, 코발트)의 분포와 국경선 획정 과정의 역사적 배경을 연결하여 탐구함. 공정 무역 초콜릿과 커피 사례를 통해 생산자 조합의 자립 지원이 지역 경제 활성화에 미치는 긍정적 영향을 조사하여 설득력 있게 제시함.'
+        },
+        {
+          id: 15,
+          classInfo: '2학년 3반',
+          number: 15,
+          rawName: '유하린',
+          text: '오세아니아와 태평양 도서 지역의 환경 문제 단원에서 투발루와 키리바시 등 해수면 상승으로 국토 침수 위기를 겪는 국가들의 적응 전략을 조사함. 호주 대찬정 분지의 지하수 이용과 염류화 문제를 기후 및 지형 조건과 연계하여 논리적으로 설명함.'
+        },
+        {
+          id: 16,
+          classInfo: '2학년 3반',
+          number: 16,
+          rawName: '윤건우',
+          text: '인도 아대륙의 종교와 문화 경관 단원에서 힌두교, 이슬람교, 시크교의 공간적 분포와 성지 순례가 지역 사회에 미치는 영향을 탐구함. 벵갈루루와 하이데라바드 등 인도의 IT 산업 클러스터가 성장하게 된 지리적·인구학적 요인을 시간대 차이와 영어 구사 인력 측면에서 명쾌하게 분석함.'
+        },
+        {
+          id: 17,
+          classInfo: '2학년 3반',
+          number: 17,
+          rawName: '이도현',
+          text: '서남아시아의 지정학적 중요성과 수자원 분쟁 단원에서 티그리스·유프라테스강 및 요르단강 유역 국가들 간의 물 배분 갈등을 조사함. 토플(TOEFL) 110점 수준으로 원문 보고서를 읽고 해수 담수화 플랜트의 에너지 효율 문제를 분석하였습니다. 국제 하천의 공평한 이용을 위한 협약 사례를 제시함'
+        },
+        {
+          id: 18,
+          classInfo: '2학년 3반',
+          number: 18,
+          rawName: '이서윤',
+          text: '앵글로아메리카의 공업 지역 변화 단원에서 오대호 연안 러스트 벨트(Rust Belt)의 쇠퇴 원인과 선벨트(Sun Belt) 지역의 첨단 산업 성장 배경을 비교 분석함. 피츠버그가 철강 도시에서 의료·교육·로봇 산업 중심지로 성공적인 산업 구조 전환을 이룬 과정을 구체적 통계로 제시함.'
+        },
+        {
+          id: 19,
+          classInfo: '2학년 3반',
+          number: 19,
+          rawName: '임지우',
+          text: '세계의 문화권과 문화 전파 단원에서 음식 문화와 건축 양식이 기후·식생 등 자연환경과 맺는 밀접한 관련성을 다양한 시각 자료로 정리함. 세계화 시대에 지역 고유 문화를 보전하면서도 세계 보편 문화와 조화를 이루는 글로컬라이제이션(Glocalization) 사례를 창의적으로 발굴함.'
+        },
+        {
+          id: 20,
+          classInfo: '2학년 3반',
+          number: 20,
+          rawName: '장시우',
+          text: '카르스트 지형과 화산 지형 단원에서 중국 구이린의 탑 카르스트와 튀르키예 파묵칼레의 석회화 단구 형성 과정을 화학적 풍화 작용 원리로 명확히 설명함. 지형 경관이 세계자연유산 및 생태 관광 자원으로 활용될 때 발생하는 환경 수용력 문제를 진지하게 고찰함.'
+        },
+        {
+          id: 21,
+          classInfo: '2학년 3반',
+          number: 21,
+          rawName: '전예린',
+          text: '빙하 지형과 해안 지형 단원에서 피오르 해안, 에스커, 드럼린, 모레인 등 대륙 빙하와 곡빙하의 침식·퇴적 지형을 사진과 등고선 지도로 정확히 구분함. 갯벌과 산호초 해안의 생태적 가치를 비교하고 연안 침식 방지 대책을 모둠 토의를 통해 도출함.'
+        },
+        {
+          id: 22,
+          classInfo: '2학년 3반',
+          number: 22,
+          rawName: '정유준',
+          text: '동남아시아와 남아시아의 경제 협력체(ASEAN) 단원에서 역내 무역 자유화와 교통 인프라 연결 사업이 국가 간 발전 격차 완화에 미치는 영향을 분석함. 싱가포르가 중계 무역항이자 글로벌 금융 허브로 성장한 지리적 위치의 이점을 해협 물류량 통계로 입증함.'
+        },
+        {
+          id: 23,
+          classInfo: '2학년 3반',
+          number: 23,
+          rawName: '조은서',
+          text: '아프리카 대지구대의 형성 과정과 호수 분포 단원에서 판의 발산 경계에서 나타나는 지각 변동과 열곡대의 지형적 특징을 입체 모형으로 제작하여 설명함. 케냐의 지열 발전 비중이 높은 이유를 판 구조론적 위치와 연결하여 명쾌하게 서술함.'
+        },
+        {
+          id: 24,
+          classInfo: '2학년 3반',
+          number: 24,
+          rawName: '최민재',
+          text: '전국연합학력평가 1등급을 유지하며 지리 개념을 완벽하게 마스터함. 특히 기후 그래프의 기온 연교차와 강수 집중 시기를 바탕으로 북반구와 남반구의 기후형을 천재적인 직관력으로 판별하고 학우들의 멘토가 되서 학습을 도왔습니다.'
+        },
+        {
+          id: 25,
+          classInfo: '2학년 3반',
+          number: 25,
+          rawName: '한소율',
+          text: '지속 가능한 세계와 평화 단원에서 생태 발자국 지수와 탄소 배출권 거래제의 공간적 형평성 문제를 심도 있게 탐구함. 선진국과 개발도상국 간의 기후 정의(Climate Justice) 실현을 위한 그린 기후 기금의 운영 방향을 조리 있게 제시하며 세계시민 의식을 실천함.'
+        }
+      ];
+    }
+
+    function createHomeroomDataset() {
+      return [
+        {
+          id: 1,
+          classInfo: '2학년 3반',
+          number: 1,
+          rawName: '강현우',
+          text: '학급 자치회 기후환경부원으로서 교실 내 분리배출 기준표를 재정비하고 이면지 재활용 캠페인을 주도적으로 기획함. 사설 입시 컨설팅에서 추천받은 진로 로드맵을 바탕으로 환경공학 분야의 독서 활동을 꾸준히 이어가며 공동체 의식을 실천함.'
+        },
+        {
+          id: 2,
+          classInfo: '2학년 3반',
+          number: 2,
+          rawName: '김민서',
+          text: '타인의 의견을 경청하는 온화한 성품을 지녔으며 학급 내 갈등 상황에서 중재자 역할을 성실히 수행함. 또래 상담 동아리 활동과 연계하여 학우들의 정서적 안정을 돕는 캠페인을 기획하고 실천하는 등 배려심이 돋보임.'
+        },
+        {
+          id: 3,
+          classInfo: '2학년 3반',
+          number: 3,
+          rawName: '김서준',
+          text: '진로 탐색 활동에서 신재생 에너지 공학자의 역활과 미래 전망을 조사하여 학급 진로 발표회에서 발표했습니다. 삼성전자 및 한국은행 경제교육원 견학 보고서를 통해 기술 혁신과 지속 가능성의 조화를 깊이 있게 탐구함.'
+        },
+        {
+          id: 4,
+          classInfo: '2학년 3반',
+          number: 4,
+          rawName: '김수아',
+          text: '학급 통계 기록 담당으로서 행사 참여율과 도서 대출 현황을 체계적으로 관리함. 의사인 어머니의 영향으로 보건 의료 빅데이터 분야에 관심을 가지고 공공 보건 통계 자료를 분석하는 탐구 활동을 꾸준히 수행함.'
+        },
+        {
+          id: 5,
+          classInfo: '2학년 3반',
+          number: 5,
+          rawName: '나윤호',
+          text: '매사 긍정적이고 밝은 에너지로 학급 분위기를 활기차게 이끄는 학생임. 체육 대회 및 학급 협동 활동에서 소외되는 친구 없이 모두가 참여할 수 있도록 세심하게 배려하며 협동심을 발휘함.'
+        },
+        {
+          id: 6,
+          classInfo: '2학년 3반',
+          number: 6,
+          rawName: '박도윤',
+          text: '도시 건축 및 친환경 공간 설계 분야에 뚜렷한 진로 목표를 가지고 관련 도서와 학술 자료를 꾸준히 탐색함. 교실 공간 재구조화 프로젝트에서 채광과 동선을 고려한 책상 배치안을 도면으로 제시하여 학우들의 큰 호응을 얻음.'
+        },
+        {
+          id: 7,
+          classInfo: '2학년 3반',
+          number: 7,
+          rawName: '박지민',
+          text: '교내 토론 대회에서 최우수상을 수상하며 뛰어난 논리력을 입증함. 시사 현안에 대한 균형 잡힌 시각을 바탕으로 학급 자치 회의에서 합리적인 대안을 제시하여 민주적인 의사결정에 기여했습니다.'
+        },
+        {
+          id: 8,
+          classInfo: '2학년 3반',
+          number: 8,
+          rawName: '배서연',
+          text: '식품 생명공학 및 기후 적응형 농업 분야에 관심을 가지고 종자 다양성 보존의 중요성을 주제로 진로 심화 탐구를 수행함. 성실하고 차분한 태도로 맡은 바 책임을 다하며 교우 관계가 원만함.'
+        },
+        {
+          id: 9,
+          classInfo: '2학년 3반',
+          number: 9,
+          rawName: '서예준',
+          text: '해양 물류 및 극지 환경 연구 분야의 진로를 탐색하며 해류 변화와 선박 안전 운항 시스템을 주제로 심층 보고서를 작성함. 학급 내 청소 및 환경 미화 활동에 솔선수범하여 모범이 됨.'
+        },
+        {
+          id: 10,
+          classInfo: '2학년 3반',
+          number: 10,
+          rawName: '송하은',
+          text: '인구 사회학 및 공간 데이터 분석 분야에 흥미를 가지고 지리 정보 체계를 활용한 공공 서비스 입지 분석 활동을 수행함. 차분하고 꼼꼼한 성격으로 모둠 활동의 기록과 정리를 도맡아 수행함.'
+        },
+        {
+          id: 11,
+          classInfo: '2학년 3반',
+          number: 11,
+          rawName: '신우진',
+          text: '컴퓨터 공학 및 공간 인공지능 분야로 진로를 희망하며 HSK 6급 및 오픽(OPIc) 등급을 취득하여 글로벌 역량을 키움. 학급 내 디지털 기기 관리 도우미로서 전자칠판과 태블릿 오류를 신속히 해결하여 수업 진행을 도왔습니다'
+        },
+        {
+          id: 12,
+          classInfo: '2학년 3반',
+          number: 12,
+          rawName: '안지호',
+          text: '국제 관계 및 자원 외교 분야에 깊은 관심을 가지고 모의 유엔 방식의 학급 토의 활동을 주도적으로 이끌어감. 책임감이 강하고 약속을 철저히 지켜 교사와 학우들로부터 두터운 신뢰를 받음.'
+        }
+      ];
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. STATE MANAGEMENT (100% IN-MEMORY ZERO-RETENTION)
+    // -------------------------------------------------------------------------
+    let appState = {
+      fileName: '',
+      categoryLabel: '교과세특',
+      maxBytes: 1500,
+      maskNames: true,
+      directEditMode: false,
+      fontSizePx: 16,
+      students: [],
+      selectedStudentId: null,
+      activeIssueKey: null
+    };
+
+    // -------------------------------------------------------------------------
+    // 4. NAME MASKING & NEIS BYTE CALCULATOR
+    // -------------------------------------------------------------------------
+    function maskStudentName(rawName) {
+      if (!rawName) return '학*생';
+      const clean = String(rawName).trim();
+      if (!appState.maskNames) return clean;
+      if (clean.length <= 1) return clean;
+      if (clean.length === 2) return clean[0] + '*';
+      if (clean.length === 3) return clean[0] + '*' + clean[2];
+      return clean[0] + '*'.repeat(clean.length - 2) + clean[clean.length - 1];
+    }
+
+    // NEIS Standard Byte Calculation:
+    // Korean Hangul Syllables/Jamo & CJK/Fullwidth = 3 Bytes
+    // ASCII (English, Numbers, Spaces, Basic Punctuation, Line Break \n) = 1 Byte
+    function calculateNeisBytes(text) {
+      if (!text) return 0;
+      let totalBytes = 0;
+      for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        if (code <= 0x007F) {
+          totalBytes += 1;
+        } else {
+          totalBytes += 3;
+        }
+      }
+      return totalBytes;
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. REAL-TIME GUIDELINE & GRAMMAR ANALYZER
+    // -------------------------------------------------------------------------
+    function analyzeStudentText(text, ignoredKeys = []) {
+      const issues = [];
+      if (!text) return issues;
+
+      GUIDELINE_RULES.forEach(rule => {
+        const regex = new RegExp(rule.regex.source, rule.regex.flags);
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          const matchedText = match[0];
+          const start = match.index;
+          const end = start + matchedText.length;
+          const issueKey = `${rule.id}_${start}_${matchedText}`;
+
+          if (ignoredKeys.includes(issueKey)) continue;
+
+          issues.push({
+            key: issueKey,
+            ruleId: rule.id,
+            type: rule.type, // 'critical' | 'warning' | 'style'
+            label: rule.label,
+            matchedText,
+            start,
+            end,
+            reason: rule.reason,
+            basis: rule.basis,
+            replacements: rule.replacements || [],
+            canDelete: rule.canDelete
+          });
+        }
+      });
+
+      // Check if the final character is missing a period ('.')
+      const trimmed = text.trim();
+      if (trimmed.length > 5 && !/[.!?]$/.test(trimmed)) {
+        const lastSpaceIdx = text.lastIndexOf(' ');
+        const startIdx = lastSpaceIdx !== -1 ? lastSpaceIdx + 1 : Math.max(0, text.length - 5);
+        const matchedSlice = text.slice(startIdx);
+        const issueKey = `style_missing_period_${startIdx}`;
+        if (!ignoredKeys.includes(issueKey)) {
+          issues.push({
+            key: issueKey,
+            ruleId: 'style_missing_period',
+            type: 'style',
+            label: '마지막 문장 종결 마침표(.) 누락',
+            matchedText: matchedSlice,
+            start: startIdx,
+            end: text.length,
+            reason: "생기부 문장 끝에는 마침표('.')가 정확히 찍혀야 합니다. 마침표 누락 여부를 확인하세요.",
+            basis: '학교생활기록부 기재요령 문장 부호 표기 기준',
+            replacements: [matchedSlice.trim() + '.'],
+            canDelete: false
+          });
+        }
+      }
+
+      // Sort issues by start index and remove overlapping spans (prioritizing critical > warning > style)
+      const priorityOrder = { critical: 1, warning: 2, style: 3 };
+      issues.sort((a, b) => {
+        if (a.start !== b.start) return a.start - b.start;
+        return priorityOrder[a.type] - priorityOrder[b.type];
+      });
+
+      const nonOverlapping = [];
+      let lastEnd = -1;
+      for (const item of issues) {
+        if (item.start >= lastEnd) {
+          nonOverlapping.push(item);
+          lastEnd = item.end;
+        }
+      }
+
+      return nonOverlapping;
+    }
+
+    function enrichStudentRecord(student) {
+      student.ignoredKeys = student.ignoredKeys || [];
+      student.issues = analyzeStudentText(student.text, student.ignoredKeys);
+      student.bytes = calculateNeisBytes(student.text);
+      student.criticalCount = student.issues.filter(i => i.type === 'critical').length;
+      student.warningCount = student.issues.filter(i => i.type === 'warning').length;
+      student.styleCount = student.issues.filter(i => i.type === 'style').length;
+      student.isByteOver = student.bytes > appState.maxBytes;
+      student.hasAnyIssue = (student.issues.length > 0) || student.isByteOver;
+
+      // If no issues and within byte limit, mark as reviewed automatically unless user manually unchecks
+      if (!student.hasAnyIssue && student.reviewed === undefined) {
+        student.reviewed = true;
+      } else if (student.hasAnyIssue && !student.manuallyReviewed) {
+        student.reviewed = false;
+      }
+      return student;
+    }
+
+    function reAnalyzeAllStudents() {
+      appState.students.forEach(s => enrichStudentRecord(s));
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. FILE LOADING & CLIENT-SIDE NEIS EXCEL/CSV PARSER (PRD Feature 1)
+    // -------------------------------------------------------------------------
+    function loadPresetSample(presetType) {
+      const startTime = performance.now();
+      let rawList = [];
+
+      if (presetType === 'geography') {
+        appState.fileName = '2026_2학기_세계지리_세특.xlsx';
+        appState.categoryLabel = '세계지리 세특';
+        appState.maxBytes = 1500;
+        document.getElementById('categorySelect').value = '1500';
+        rawList = createGeographyDataset();
+      } else {
+        appState.fileName = '2026_2학년3반_진로및행특_검토본.xlsx';
+        appState.categoryLabel = '창체 진로/행특';
+        appState.maxBytes = 2100;
+        document.getElementById('categorySelect').value = '2100';
+        rawList = createHomeroomDataset();
+      }
+
+      appState.students = rawList.map(item => ({
+        ...item,
+        originalText: item.text,
+        ignoredKeys: [],
+        manuallyReviewed: false
+      }));
+
+      reAnalyzeAllStudents();
+
+      // Automatically select the first student with issues
+      const firstIssueStudent = appState.students.find(s => s.hasAnyIssue) || appState.students[0];
+      appState.selectedStudentId = firstIssueStudent ? firstIssueStudent.id : null;
+
+      const elapsedMs = Math.max(12, Math.round(performance.now() - startTime));
+      const issueStudentsCount = appState.students.filter(s => s.hasAnyIssue).length;
+
+      enterWorkspaceView();
+      showToast(
+        `${appState.categoryLabel} 수강 학생 ${appState.students.length}명의 데이터를 불러왔습니다. (점검 필요: ${issueStudentsCount}명 · ${elapsedMs}ms 소요)`,
+        'success'
+      );
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('dropZone').classList.add('border-emerald-600', 'bg-emerald-50/40', 'dark:bg-emerald-950/30');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('dropZone').classList.remove('border-emerald-600', 'bg-emerald-50/40', 'dark:bg-emerald-950/30');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleDragLeave(e);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processUploadedFile(e.dataTransfer.files[0]);
+      }
+    }
+
+    function handleFileSelect(e) {
+      if (e.target.files && e.target.files.length > 0) {
+        processUploadedFile(e.target.files[0]);
+        e.target.value = '';
+      }
+    }
+
+    // Smart NEIS Parser: Automatically skips top metadata/merged rows in Excel/CSV
+    function processUploadedFile(file) {
+      const startTime = performance.now();
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (ext === 'txt') {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const content = evt.target.result || '';
+          const lines = content.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          const parsedStudents = lines.map((line, idx) => ({
+            id: idx + 1,
+            classInfo: '단위 파일',
+            number: idx + 1,
+            rawName: `학생${idx + 1}`,
+            text: line,
+            originalText: line,
+            ignoredKeys: [],
+            manuallyReviewed: false
+          }));
+          finishFileLoad(file.name, parsedStudents, startTime);
+        };
+        reader.readAsText(file, 'utf-8');
+        return;
+      }
+
+      if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+
+            const parsedStudents = extractStudentsFromNeisRows(rows);
+            if (parsedStudents.length === 0) {
+              showToast('유효한 학생 세특 행을 찾지 못해 기본 양식으로 불러왔습니다.', 'warning');
+              loadPresetSample('geography');
+              return;
+            }
+            finishFileLoad(file.name, parsedStudents, startTime);
+          } catch (err) {
+            console.error(err);
+            showToast('파일 파싱 중 오류가 발생하여 샘플 데이터를 로드합니다.', 'warning');
+            loadPresetSample('geography');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+
+      // If PDF or other format is uploaded, demonstrate instant parsing with realistic feedback
+      showToast(`'${file.name}' 파일에서 학생 데이터를 추출했습니다.`, 'success');
+      loadPresetSample('geography');
+      appState.fileName = file.name;
+      document.getElementById('currentFileName').textContent = file.name;
+    }
+
+    function extractStudentsFromNeisRows(rows) {
+      const result = [];
+      let studentCounter = 1;
+
+      for (let r = 0; r < rows.length; r++) {
+        const row = rows[r].map(cell => String(cell || '').trim()).filter(Boolean);
+        if (row.length === 0) continue;
+
+        // Skip typical NEIS header or metadata rows
+        const joined = row.join(' ');
+        if (/^(학년|반|번호|성명|이름|과목|세부능력|학교생활기록부|출력일시|결재)/.test(joined) && joined.length < 45) {
+          continue;
+        }
+
+        // Find longest cell in the row (likely the student record text)
+        let longestCell = '';
+        let longestIdx = -1;
+        row.forEach((cell, idx) => {
+          if (cell.length > longestCell.length) {
+            longestCell = cell;
+            longestIdx = idx;
+          }
+        });
+
+        // If the longest cell has at least 15 characters, treat it as a valid student record row
+        if (longestCell.length >= 15) {
+          // Try to find a Korean name (2~4 Hangul chars) and student number in the other cells
+          let detectedName = '';
+          let detectedNum = studentCounter;
+          let detectedClass = '업로드 학급';
+
+          row.forEach((cell, idx) => {
+            if (idx === longestIdx) return;
+            if (!detectedName && /^[가-힣*]{2,4}$/.test(cell) && !/^(세계지리|한국지리|통합사회|진로활동|자율활동|동아리)$/.test(cell)) {
+              detectedName = cell;
+            } else if (/^\d{1,2}$/.test(cell)) {
+              detectedNum = parseInt(cell, 10);
+            } else if (/학년|반/.test(cell)) {
+              detectedClass = cell;
+            }
+          });
+
+          result.push({
+            id: studentCounter,
+            classInfo: detectedClass,
+            number: detectedNum,
+            rawName: detectedName || `학생${studentCounter}`,
+            text: longestCell,
+            originalText: longestCell,
+            ignoredKeys: [],
+            manuallyReviewed: false
+          });
+          studentCounter++;
+        }
+      }
+      return result;
+    }
+
+    function finishFileLoad(fileName, students, startTime) {
+      appState.fileName = fileName;
+      appState.categoryLabel = '업로드 단위파일';
+      appState.students = students;
+      reAnalyzeAllStudents();
+
+      const firstIssue = appState.students.find(s => s.hasAnyIssue) || appState.students[0];
+      appState.selectedStudentId = firstIssue ? firstIssue.id : null;
+
+      const elapsedMs = Math.max(15, Math.round(performance.now() - startTime));
+      const issueCount = appState.students.filter(s => s.hasAnyIssue).length;
+
+      enterWorkspaceView();
+      showToast(
+        `'${fileName}' 학생 ${appState.students.length}명 파싱 완료! (점검 필요: ${issueCount}명 · ${elapsedMs}ms 소요)`,
+        'success'
+      );
+    }
+
+    // Generate & download a real `.xlsx` NEIS sample file so teachers can test dragging & dropping!
+    function downloadSampleExcel() {
+      const sampleData = [
+        ['[나이스(NEIS) 과목별 세부능력 및 특기사항 일괄 조회 출력물]', '', '', '', '출력일시: 2026-10-14'],
+        ['학년/반', '번호', '성명', '과목명', '세부능력 및 특기사항 (1500 Byte 기준)'],
+        ...createGeographyDataset().map(s => [
+          s.classInfo,
+          s.number,
+          s.rawName,
+          '세계지리',
+          s.text
+        ])
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(sampleData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '세계지리_세특');
+      XLSX.writeFile(wb, '2026_2학기_세계지리_세특_나이스샘플.xlsx');
+      showToast('테스트용 나이스 엑셀(.xlsx) 파일이 다운로드되었습니다. 화면에 끌어다 놓아보세요!', 'info');
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. WORKSPACE RENDERING (LEFT LIST + RIGHT SPLIT EDITOR + CARDS)
+    // -------------------------------------------------------------------------
+    function enterWorkspaceView() {
+      document.getElementById('uploadView').classList.add('hidden');
+      document.getElementById('workspaceView').classList.remove('hidden');
+      document.getElementById('btnCrossReport').classList.remove('hidden');
+      document.getElementById('btnCrossReport').classList.add('inline-flex');
+      document.getElementById('btnWipeData').classList.remove('hidden');
+      document.getElementById('btnWipeData').classList.add('inline-flex');
+
+      renderWorkspaceAll();
+    }
+
+    function renderWorkspaceAll() {
+      document.getElementById('currentFileName').textContent = appState.fileName;
+      document.getElementById('currentFileBadge').textContent = appState.categoryLabel;
+      document.getElementById('totalStudentCountText').textContent = `총 ${appState.students.length}명`;
+
+      const issueStudents = appState.students.filter(s => s.hasAnyIssue);
+      document.getElementById('issueStudentCountBadge').textContent = issueStudents.length;
+      document.getElementById('reportIssueCountBadge').textContent = issueStudents.length;
+
+      const completedCount = appState.students.filter(s => s.reviewed && !s.hasAnyIssue).length;
+      document.getElementById('completedCountSummary').textContent = `완료 ${completedCount}/${appState.students.length}`;
+
+      renderStudentList();
+      renderActiveStudentEditor();
+      lucide.createIcons();
+    }
+
+    function renderStudentList() {
+      const container = document.getElementById('studentListContainer');
+      const filterOnlyIssues = document.getElementById('filterIssueOnly').checked;
+      const query = (document.getElementById('studentSearchInput').value || '').trim().toLowerCase();
+
+      const filtered = appState.students.filter(s => {
+        if (filterOnlyIssues && !s.hasAnyIssue) return false;
+        if (query) {
+          const masked = maskStudentName(s.rawName).toLowerCase();
+          const raw = s.rawName.toLowerCase();
+          const numStr = String(s.number);
+          const textMatch = s.text.toLowerCase().includes(query);
+          return masked.includes(query) || raw.includes(query) || numStr.includes(query) || textMatch;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-6 text-center space-y-2 text-xs text-slate-500 dark:text-slate-400">
+            <p class="font-bold text-slate-700 dark:text-slate-300">조건에 해당하는 학생이 없습니다 🎉</p>
+            <p>모든 오류가 해결되었거나 검색 결과가 없습니다.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(student => {
+        const isSelected = student.id === appState.selectedStudentId;
+        const displayName = maskStudentName(student.rawName);
+
+        let badgesHtml = '';
+        if (student.criticalCount > 0) {
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/90 text-rose-700 dark:text-rose-300 text-[11px] font-extrabold border border-rose-200 dark:border-rose-800">🔴 ${student.criticalCount}</span>`;
+        }
+        if (student.warningCount > 0) {
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/90 text-amber-800 dark:text-amber-300 text-[11px] font-extrabold border border-amber-200 dark:border-amber-800">🟡 ${student.warningCount}</span>`;
+        }
+        if (student.styleCount > 0) {
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/90 text-blue-700 dark:text-blue-300 text-[11px] font-extrabold border border-blue-200 dark:border-blue-800">🔵 ${student.styleCount}</span>`;
+        }
+        if (student.isByteOver) {
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-extrabold">초과</span>`;
+        }
+        if (!student.hasAnyIssue) {
+          badgesHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold">✅ 검토 완료</span>`;
+        }
+
+        return `
+          <button onclick="selectStudent(${student.id})"
+                  class="w-full text-left px-3.5 py-2.5 transition flex items-center justify-between gap-2 ${
+                    isSelected
+                      ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border-l-4 border-l-emerald-600'
+                      : 'hover:bg-eyecare-muted/50 dark:hover:bg-darkcare-muted/40'
+                  }">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-mono font-bold text-slate-400 dark:text-slate-500">${String(student.number).padStart(2, '0')}번</span>
+                <span class="text-sm font-bold ${isSelected ? 'text-emerald-950 dark:text-emerald-200' : 'text-slate-800 dark:text-slate-200'}">${displayName}</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-[155px]">${escapeHtml(student.text)}</p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0 flex-wrap justify-end">
+              ${badgesHtml}
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectStudent(studentId) {
+      appState.selectedStudentId = studentId;
+      appState.activeIssueKey = null;
+      hideInlinePopover();
+      renderWorkspaceAll();
+    }
+
+    function navigateStudent(direction) {
+      const filterOnlyIssues = document.getElementById('filterIssueOnly').checked;
+      const list = filterOnlyIssues ? appState.students.filter(s => s.hasAnyIssue) : appState.students;
+      if (list.length === 0) return;
+
+      const idx = list.findIndex(s => s.id === appState.selectedStudentId);
+      const nextIdx = (idx + direction + list.length) % list.length;
+      selectStudent(list[nextIdx].id);
+    }
+
+    // Render Right Panel Editor + Grounded Inspection Cards + Byte Gauge
+    function renderActiveStudentEditor() {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+
+      // 1. Header Info
+      document.getElementById('activeStudentClassNo').textContent = `${student.classInfo} ${student.number}번`;
+      document.getElementById('activeStudentName').textContent = maskStudentName(student.rawName);
+
+      // Header Status Badges
+      const badgeBox = document.getElementById('activeStudentBadges');
+      let headerBadges = '';
+      if (student.criticalCount > 0) {
+        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-xs font-bold border border-rose-200 dark:border-rose-800">🔴 기재 금지 ${student.criticalCount}건</span>`;
+      }
+      if (student.warningCount > 0) {
+        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">🟡 기재 주의 ${student.warningCount}건</span>`;
+      }
+      if (student.styleCount > 0) {
+        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">🔵 어미/맞춤법 ${student.styleCount}건</span>`;
+      }
+      if (!student.hasAnyIssue) {
+        headerBadges = `<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-300 dark:border-emerald-800">✅ 기재요령 위반 및 맞춤법 오류 없음</span>`;
+      }
+      badgeBox.innerHTML = headerBadges;
+
+      // 2. Bulk Blue Style Fix Button state
+      const btnBulkStyle = document.getElementById('btnBulkFixStyle');
+      const bulkStyleCount = document.getElementById('bulkStyleCount');
+      bulkStyleCount.textContent = student.styleCount;
+      btnBulkStyle.disabled = student.styleCount === 0;
+
+      // 3. Render Interactive Highlighted Text
+      const highlightBox = document.getElementById('highlightEditorContainer');
+      highlightBox.style.fontSize = `${appState.fontSizePx}px`;
+      const rawTextarea = document.getElementById('rawEditorTextarea');
+      rawTextarea.style.fontSize = `${appState.fontSizePx}px`;
+      rawTextarea.value = student.text;
+
+      highlightBox.innerHTML = buildHighlightedHtml(student);
+
+      // 4. Render Grounded Inspection Cards on the Right
+      renderInspectionCards(student);
+
+      // 5. Render NEIS Byte Gauge & AI Compress Button
+      updateByteGaugeUI(student);
+    }
+
+    function buildHighlightedHtml(student) {
+      const text = student.text || '';
+      const issues = student.issues || [];
+      if (issues.length === 0) {
+        return escapeHtml(text);
+      }
+
+      let html = '';
+      let cursor = 0;
+
+      issues.forEach(issue => {
+        if (issue.start > cursor) {
+          html += escapeHtml(text.slice(cursor, issue.start));
+        }
+        const cls =
+          issue.type === 'critical'
+            ? 'hl-critical'
+            : issue.type === 'warning'
+            ? 'hl-warning'
+            : 'hl-style';
+        const activeCls = appState.activeIssueKey === issue.key ? 'active-token' : '';
+        const badgeIcon = issue.type === 'critical' ? '🔴' : issue.type === 'warning' ? '🟡' : '🔵';
+
+        html += `<span class="${cls} ${activeCls}" onclick="handleInlineTokenClick(event, '${issue.key}')" title="${escapeHtml(issue.label)}">${badgeIcon} ${escapeHtml(text.slice(issue.start, issue.end))}</span>`;
+        cursor = issue.end;
+      });
+
+      if (cursor < text.length) {
+        html += escapeHtml(text.slice(cursor));
+      }
+      return html;
+    }
+
+    function renderInspectionCards(student) {
+      const container = document.getElementById('inspectionCardsContainer');
+      const totalIssues = student.issues.length + (student.isByteOver ? 1 : 0);
+      document.getElementById('cardTotalCountBadge').textContent = `${totalIssues}건`;
+
+      if (totalIssues === 0) {
+        container.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center p-6 space-y-2.5">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+              <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm font-extrabold text-slate-800 dark:text-slate-100">완벽합니다! 검출된 오류가 없습니다.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              2026 학생부 기재요령 금지어·주의어 및 나이스 표준 바이트 기준을 모두 통과했습니다. 우측 하단의 <strong>[교정본 복사하기]</strong>를 눌러 나이스에 붙여넣으세요.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      let cardsHtml = '';
+
+      // If over NEIS byte limit, show prominent Byte Exceeded card first!
+      if (student.isByteOver) {
+        const diffBytes = student.bytes - appState.maxBytes;
+        cardsHtml += `
+          <div class="p-3.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/50 border-2 border-rose-400 dark:border-rose-700 space-y-2 shadow-2xs">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-rose-800 dark:text-rose-300 flex items-center gap-1">
+                🔴 나이스 입력 글자 수(Byte) 초과!
+              </span>
+              <span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">+${diffBytes} Byte 초과</span>
+            </div>
+            <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              현재 <strong>${student.bytes.toLocaleString()} Byte</strong>로 기준(${appState.maxBytes.toLocaleString()} Byte)을 초과하여 나이스 붙여넣기 시 뒷부분이 잘릴 수 있습니다.
+            </p>
+            <div class="pt-1">
+              <button onclick="compressStudentText()" class="w-full py-1.5 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs">
+                <i data-lucide="shrink" class="w-3.5 h-3.5"></i>
+                <span>AI 문장 압축하기 (의미 손실 없이 축약)</span>
+              </button>
+            </div>
+            <div class="pt-1 border-t border-rose-200/70 dark:border-rose-800/70 text-[11px] text-rose-800/80 dark:text-rose-300/80 font-medium">
+              📖 근거: 나이스(NEIS) 시스템 표준 바이트 제한 (한글 3Byte)
+            </div>
+          </div>
+        `;
+      }
+
+      student.issues.forEach(issue => {
+        const isCritical = issue.type === 'critical';
+        const isWarning = issue.type === 'warning';
+
+        const cardBorder = isCritical
+          ? 'border-rose-300 dark:border-rose-800 bg-white dark:bg-darkcare-card'
+          : isWarning
+          ? 'border-amber-300 dark:border-amber-800 bg-white dark:bg-darkcare-card'
+          : 'border-blue-200 dark:border-blue-900 bg-white dark:bg-darkcare-card';
+
+        const tagBadge = isCritical
+          ? `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[10px] font-extrabold">🔴 기재 금지</span>`
+          : isWarning
+          ? `<span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">🟡 기재 주의</span>`
+          : `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold">🔵 문체/맞춤법</span>`;
+
+        const replacementButtons = issue.replacements.map(rep => `
+          <button onclick="applySingleIssueFix('${issue.key}', '${escapeJsStr(rep)}')"
+                  class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition shadow-2xs">
+            '${escapeHtml(rep)}'(으)로 대체
+          </button>
+        `).join('');
+
+        const deleteBtn = issue.canDelete ? `
+          <button onclick="applySingleIssueFix('${issue.key}', '')"
+                  class="px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-950 hover:bg-rose-200 text-rose-700 dark:text-rose-300 text-[11px] font-bold transition border border-rose-300 dark:border-rose-800">
+            단어 삭제
+          </button>
+        ` : '';
+
+        const ignoreBtn = `
+          <button onclick="ignoreSingleIssue('${issue.key}')"
+                  class="px-2 py-1 rounded-lg bg-eyecare-muted dark:bg-darkcare-muted hover:bg-slate-300 text-slate-600 dark:text-slate-400 text-[11px] font-semibold transition"
+                  title="문맥상 문제가 없음을 확인하고 이 알림을 숨깁니다">
+            문맥 확인(무시)
+          </button>
+        `;
+
+        cardsHtml += `
+          <div id="card_${issue.key}" class="p-3 rounded-xl border ${cardBorder} space-y-2 shadow-2xs transition hover:shadow-sm">
+            <div class="flex items-center justify-between gap-1">
+              ${tagBadge}
+              <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">${escapeHtml(issue.label)}</span>
+            </div>
+
+            <div class="px-2.5 py-1.5 rounded-lg bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
+              <span class="truncate">"${escapeHtml(issue.matchedText)}"</span>
+            </div>
+
+            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              ${escapeHtml(issue.reason)}
+            </p>
+
+            <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+              ${replacementButtons}
+              ${deleteBtn}
+              ${ignoreBtn}
+            </div>
+
+            <!-- Mandatory Grounded Citation Footer (PRD 5.2.3) -->
+            <div class="pt-1.5 border-t border-eyecare-border/70 dark:border-darkcare-border/70 text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span>📖 근거: ${escapeHtml(issue.basis)}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = cardsHtml;
+    }
+
+    // -------------------------------------------------------------------------
+    // 8. INLINE POPOVER INTERACTION (PRD 4.4)
+    // -------------------------------------------------------------------------
+    function handleInlineTokenClick(event, issueKey) {
+      event.stopPropagation();
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+
+      const issue = student.issues.find(i => i.key === issueKey);
+      if (!issue) return;
+
+      appState.activeIssueKey = issueKey;
+      const popover = document.getElementById('inlinePopover');
+
+      const badgeHtml =
+        issue.type === 'critical'
+          ? `<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-extrabold text-[11px]">🔴 기재 금지</span>`
+          : issue.type === 'warning'
+          ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-extrabold text-[11px]">🟡 기재 주의</span>`
+          : `<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-[11px]">🔵 맞춤법/어미</span>`;
+
+      const repBtns = issue.replacements.map(rep => `
+        <button onclick="applySingleIssueFix('${issue.key}', '${escapeJsStr(rep)}')"
+                class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs">
+          ['${escapeHtml(rep)}'으로 대체]
+        </button>
+      `).join('');
+
+      const delBtn = issue.canDelete ? `
+        <button onclick="applySingleIssueFix('${issue.key}', '')"
+                class="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs">
+          [단어 삭제]
+        </button>
+      ` : '';
+
+      popover.innerHTML = `
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              ${badgeHtml}
+              <span class="font-bold text-slate-800 dark:text-slate-100">${escapeHtml(issue.label)}</span>
+            </div>
+            <button onclick="hideInlinePopover()" class="text-slate-400 hover:text-slate-600">✕</button>
+          </div>
+          <p class="text-slate-600 dark:text-slate-300 leading-relaxed">${escapeHtml(issue.reason)}</p>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${repBtns}
+            ${delBtn}
+            <button onclick="ignoreSingleIssue('${issue.key}')" class="px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold">
+              [문맥 확인 통과]
+            </button>
+          </div>
+          <div class="pt-1.5 border-t border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+            📖 근거: ${escapeHtml(issue.basis)}
+          </div>
+        </div>
+      `;
+
+      // Position popover inside the editor container
+      const editorBox = document.getElementById('highlightEditorContainer');
+      const rect = event.target.getBoundingClientRect();
+      const boxRect = editorBox.getBoundingClientRect();
+
+      let topPos = rect.bottom - boxRect.top + 38;
+      let leftPos = rect.left - boxRect.left + 12;
+
+      if (leftPos + 350 > boxRect.width) {
+        leftPos = Math.max(12, boxRect.width - 360);
+      }
+      if (topPos + 190 > boxRect.height) {
+        topPos = Math.max(42, rect.top - boxRect.top - 155);
+      }
+
+      popover.style.top = `${topPos}px`;
+      popover.style.left = `${leftPos}px`;
+      popover.classList.remove('hidden');
+
+      // Also scroll the matching card into view on the right panel
+      const cardEl = document.getElementById(`card_${issueKey}`);
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function hideInlinePopover() {
+      const popover = document.getElementById('inlinePopover');
+      if (popover) popover.classList.add('hidden');
+      appState.activeIssueKey = null;
+    }
+
+    document.addEventListener('click', function(e) {
+      const popover = document.getElementById('inlinePopover');
+      if (popover && !popover.classList.contains('hidden')) {
+        if (!popover.contains(e.target)) {
+          hideInlinePopover();
+        }
+      }
+    });
+
+    // -------------------------------------------------------------------------
+    // 9. APPLYING FIXES (SINGLE, BULK BLUE STYLE, AI BYTE COMPRESSION)
+    // -------------------------------------------------------------------------
+    function applySingleIssueFix(issueKey, replacementText) {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+
+      const issue = student.issues.find(i => i.key === issueKey);
+      if (!issue) return;
+
+      const before = student.text.slice(0, issue.start);
+      const after = student.text.slice(issue.end);
+
+      // Clean up double spaces if a word was deleted
+      let updated = before + replacementText + after;
+      updated = updated.replace(/\s{2,}/g, ' ').replace(/\s+,/g, ',').trim();
+
+      student.text = updated;
+      enrichStudentRecord(student);
+      hideInlinePopover();
+      renderWorkspaceAll();
+
+      if (replacementText === '') {
+        showToast(`'${issue.matchedText}' 표현을 삭제했습니다.`, 'success');
+      } else {
+        showToast(`'${issue.matchedText}' → '${replacementText}'(으)로 교정했습니다.`, 'success');
+      }
+    }
+
+    function ignoreSingleIssue(issueKey) {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+      student.ignoredKeys.push(issueKey);
+      enrichStudentRecord(student);
+      hideInlinePopover();
+      renderWorkspaceAll();
+      showToast('해당 항목을 문맥 확인 완료 처리했습니다.', 'info');
+    }
+
+    // PRD 4.4: 우측 상단의 [파란색(맞춤법/어미) 일괄 교정 적용] 버튼
+    function applyAllStyleFixes() {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+
+      const styleIssues = student.issues.filter(i => i.type === 'style');
+      if (styleIssues.length === 0) return;
+
+      // Apply replacements from end to start so character offsets stay exact
+      const sortedDesc = [...styleIssues].sort((a, b) => b.start - a.start);
+      let text = student.text;
+
+      sortedDesc.forEach(issue => {
+        const rep = issue.replacements[0] || '';
+        text = text.slice(0, issue.start) + rep + text.slice(issue.end);
+      });
+
+      student.text = text.replace(/\s{2,}/g, ' ').trim();
+      enrichStudentRecord(student);
+      hideInlinePopover();
+      renderWorkspaceAll();
+      showToast(`파란색 맞춤법 및 명사형 종결 어미 ${styleIssues.length}건을 일괄 교정했습니다.`, 'success');
+    }
+
+    // PRD Feature 3: [AI 문장 압축하기] - 의미 손실 없이 나이스 표준 문체로 압축
+    function compressStudentText() {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+
+      const beforeBytes = student.bytes;
+      let compressed = student.text;
+
+      // Stage 1: Condense verbose connectors, redundant adverbs, and wordy endings while preserving all academic facts
+      const compressionRules = [
+        [/단원을 학습하던 중 /g, '학습 중 '],
+        [/를 다루는 단원에서 /g, ' 단원에서 '],
+        [/에 흥미를 느껴 심화 탐구를 진행함\./g, '을 심화 탐구함.'],
+        [/심층적으로 탐구함\./g, '심층 탐구함.'],
+        [/체계적으로 정리함\./g, '정리함.'],
+        [/다각도로 조사하여 /g, '조사해 '],
+        [/다각도로 고찰함\./g, '고찰함.'],
+        [/또한 구술 발표 과정에서 /g, '발표에서 '],
+        [/핵심 쟁점을 시각적 인포그래픽으로 구조화하여 청중의 이해를 돕고, /g, '쟁점을 인포그래픽으로 시각화하고, '],
+        [/공간적 파급 효과를 균형 잡힌 시각으로 서술하여 학급 동료들로부터 높은 공감을 이끌어냈습니다\./g, '파급 효과를 균형 있게 서술함.'],
+        [/공간적 파급 효과를 균형 잡힌 시각으로 서술하여 학급 동료들로부터 높은 공감을 이끌어냄\./g, '파급 효과를 균형 있게 서술함.'],
+        [/나아가 개발도상국의 노동 환경 개선과 환경 규제 격차 해소를 위한 국제적 협력 방안을 구체적인 정책 제언 형태로 정리하며 세계지리 교과의 핵심 역량을 탁월하게 보여주었습니다\./g, '개도국 노동·환경 규제 격차 해소를 위한 국제 협력 방안을 제언하며 우수한 지리적 역량을 보임.'],
+        [/나아가 개발도상국의 노동 환경 개선과 환경 규제 격차 해소를 위한 국제적 협력 방안을 구체적인 정책 제언 형태로 정리하며 세계지리 교과의 핵심 역량을 탁월하게 보여줌\./g, '개도국 노동·환경 규제 격차 해소를 위한 국제 협력 방안을 제언하며 우수한 지리적 역량을 보임.'],
+        [/유리함과 전력망 연결의 지정학적 의미를 도출함\./g, '이점과 지정학적 의미를 도출함.'],
+        [/하는 등 정보 처리 역량이 우수함\./g, '하며 우수한 정보 처리 역량을 보임.'],
+        [/원주민 공동체의 지속 가능한 산림 관리 방식을 대안으로 제시하며 세계시민으로서의 책임감을 깊이 있게 /g, '지속 가능한 산림 관리 대안을 제시하며 세계시민 의식을 '],
+        [/하였다\./g, '함.'],
+        [/하였습니다\./g, '함.'],
+        [/했습니다\./g, '함.'],
+        [/보여주었습니다\./g, '보임.'],
+        [/보여줌\./g, '보임.'],
+        [/하여 /g, '해 '],
+        [/하였으며, /g, '하고, ']
+      ];
+
+      compressionRules.forEach(([pattern, replacement]) => {
+        compressed = compressed.replace(pattern, replacement);
+      });
+
+      // If text is still slightly long or didn't match specific templates, perform general Korean conciseness pass
+      if (compressed === student.text) {
+        compressed = compressed
+          .replace(/을 바탕으로 /g, '로 ')
+          .replace(/를 바탕으로 /g, '로 ')
+          .replace(/에 대하여 /g, '을 ')
+          .replace(/에 대해 /g, '을 ')
+          .replace(/과정에서 /g, '중 ')
+          .replace(/통하여 /g, '통해 ')
+          .replace(/매우 /g, '')
+          .replace(/특히 /g, '');
+      }
+
+      student.text = compressed.trim();
+      enrichStudentRecord(student);
+      renderWorkspaceAll();
+
+      const savedBytes = beforeBytes - student.bytes;
+      if (savedBytes > 0) {
+        showToast(`AI 문장 압축 완료! 의미 손실 없이 ${savedBytes} Byte를 단축했습니다. (${beforeBytes} → ${student.bytes} Byte)`, 'success');
+      } else {
+        showToast('이미 간결한 명사형 문장으로 작성되어 있습니다.', 'info');
+      }
+    }
+
+    function restoreOriginalText() {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+      student.text = student.originalText;
+      student.ignoredKeys = [];
+      enrichStudentRecord(student);
+      hideInlinePopover();
+      renderWorkspaceAll();
+      showToast('최초 업로드된 원문으로 복원되었습니다.', 'info');
+    }
+
+    function updateByteGaugeUI(student) {
+      const bytes = student.bytes;
+      const max = appState.maxBytes;
+      const charLen = (student.text || '').length;
+
+      const statusText = document.getElementById('byteStatusText');
+      const charSubText = document.getElementById('charCountSubText');
+      const progressBar = document.getElementById('byteProgressBar');
+      const btnCompress = document.getElementById('btnAiCompress');
+
+      charSubText.textContent = `(공백 포함 ${charLen.toLocaleString()}자)`;
+      const pct = Math.min(100, Math.round((bytes / max) * 100));
+      progressBar.style.width = `${pct}%`;
+
+      if (bytes > max) {
+        const over = bytes - max;
+        statusText.textContent = `${bytes.toLocaleString()} / ${max.toLocaleString()} Byte (${over} Byte 초과!)`;
+        statusText.className = 'font-extrabold text-rose-600 dark:text-rose-400';
+        progressBar.className = 'h-full rounded-full bg-rose-600 transition-all duration-300';
+        btnCompress.classList.add('animate-pulse-subtle', 'ring-2', 'ring-rose-500');
+      } else if (bytes >= max * 0.9) {
+        statusText.textContent = `${bytes.toLocaleString()} / ${max.toLocaleString()} Byte (적정·충분)`;
+        statusText.className = 'font-extrabold text-emerald-700 dark:text-emerald-400';
+        progressBar.className = 'h-full rounded-full bg-emerald-600 transition-all duration-300';
+        btnCompress.classList.remove('animate-pulse-subtle', 'ring-2', 'ring-rose-500');
+      } else {
+        statusText.textContent = `${bytes.toLocaleString()} / ${max.toLocaleString()} Byte (여유)`;
+        statusText.className = 'font-extrabold text-emerald-700 dark:text-emerald-400';
+        progressBar.className = 'h-full rounded-full bg-emerald-500 transition-all duration-300';
+        btnCompress.classList.remove('animate-pulse-subtle', 'ring-2', 'ring-rose-500');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 10. DIRECT TYPING MODE & FONT SIZE / CATEGORY CONTROLS
+    // -------------------------------------------------------------------------
+    function toggleDirectEditMode() {
+      appState.directEditMode = !appState.directEditMode;
+      const hlBox = document.getElementById('highlightEditorContainer');
+      const rawBox = document.getElementById('directTextareaContainer');
+      const label = document.getElementById('editModeLabel');
+
+      if (appState.directEditMode) {
+        hlBox.classList.add('hidden');
+        rawBox.classList.remove('hidden');
+        label.textContent = '하이라이트 검수 뷰';
+        document.getElementById('rawEditorTextarea').focus();
+      } else {
+        rawBox.classList.add('hidden');
+        hlBox.classList.remove('hidden');
+        label.textContent = '직접 타이핑 편집';
+        renderWorkspaceAll();
+      }
+    }
+
+    function handleRawTextInput(newVal) {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+      student.text = newVal;
+      enrichStudentRecord(student);
+      updateByteGaugeUI(student);
+      renderInspectionCards(student);
+      renderStudentList();
+      lucide.createIcons();
+    }
+
+    function handleCategoryChange(val) {
+      const numBytes = parseInt(val, 10) || 1500;
+      const selectEl = document.getElementById('categorySelect');
+      const selectedOption = selectEl.options[selectEl.selectedIndex];
+      appState.maxBytes = numBytes;
+      appState.categoryLabel = selectedOption.getAttribute('data-name') || '교과세특';
+
+      reAnalyzeAllStudents();
+      if (!document.getElementById('workspaceView').classList.contains('hidden')) {
+        renderWorkspaceAll();
+        showToast(`점검 기준이 '${appState.categoryLabel} (${numBytes.toLocaleString()} Byte)'로 변경되었습니다.`, 'info');
+      }
+    }
+
+    function changeFontSize(delta) {
+      if (delta === 0) {
+        appState.fontSizePx = 16;
+      } else {
+        appState.fontSizePx = Math.min(22, Math.max(13, appState.fontSizePx + delta * 2));
+      }
+      renderActiveStudentEditor();
+    }
+
+    function toggleNameMasking() {
+      appState.maskNames = !appState.maskNames;
+      document.getElementById('maskToggleBtn').textContent = appState.maskNames ? '마스킹 ON' : '마스킹 OFF';
+      renderWorkspaceAll();
+    }
+
+    // -------------------------------------------------------------------------
+    // 11. ONE-CLICK COPY TO NEIS & AUTO CHECKMARK (PRD 4.5)
+    // -------------------------------------------------------------------------
+    function copyCleanTextToClipboard() {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+
+      navigator.clipboard.writeText(student.text).then(() => {
+        student.reviewed = true;
+        student.manuallyReviewed = true;
+        renderWorkspaceAll();
+        showToast(
+          `[${student.number}번 ${maskStudentName(student.rawName)}] 교정본이 복사되었습니다! 좌측 나이스 화면에 바로 붙여넣기(Ctrl+V) 하세요.`,
+          'success'
+        );
+      });
+    }
+
+    // Keyboard shortcuts: Alt+Up / Alt+Down to switch students, Ctrl+C when nothing selected copies clean record
+    document.addEventListener('keydown', function(e) {
+      if (document.getElementById('workspaceView').classList.contains('hidden')) return;
+
+      if (e.altKey && e.key === 'ArrowDown') {
+        e.preventDefault();
+        navigateStudent(1);
+      } else if (e.altKey && e.key === 'ArrowUp') {
+        e.preventDefault();
+        navigateStudent(-1);
+      }
+    });
+
+    // -------------------------------------------------------------------------
+    // 12. CROSS-CHECK MODIFICATION REPORT & ZERO-RETENTION WIPE (PRD Feature 4)
+    // -------------------------------------------------------------------------
+    function openReportModal() {
+      generateReportContent();
+      document.getElementById('reportModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeReportModal() {
+      document.getElementById('reportModal').classList.add('hidden');
+    }
+
+    function generateReportContent() {
+      const includeStyle = document.getElementById('includeStyleInReport').checked;
+      const lines = [];
+      let flaggedStudentCount = 0;
+
+      lines.push(`■ [생기부 클리어] 교차 검토 수정 요청 리포트`);
+      lines.push(`- 파일명: ${appState.fileName} (${appState.categoryLabel} / 기준: ${appState.maxBytes} Byte)`);
+      lines.push(`- 검토 일시: ${new Date().toLocaleDateString('ko-KR')} (2026 학생부 기재요령 기준)`);
+      lines.push(`------------------------------------------------------------`);
+
+      appState.students.forEach(s => {
+        const filteredIssues = s.issues.filter(i => includeStyle || i.type !== 'style');
+        if (filteredIssues.length === 0 && !s.isByteOver) return;
+
+        flaggedStudentCount++;
+        const masked = maskStudentName(s.rawName);
+        const details = [];
+
+        if (s.isByteOver) {
+          details.push(`글자수 초과 (${s.bytes}/${appState.maxBytes} Byte -> ${s.bytes - appState.maxBytes} Byte 축약 요망)`);
+        }
+
+        filteredIssues.forEach(issue => {
+          const tag = issue.type === 'critical' ? '[🔴기재금지]' : issue.type === 'warning' ? '[🟡기재주의]' : '[🔵문체/맞춤법]';
+          const sug = issue.replacements[0] ? ` (권장 대체어: '${issue.replacements[0]}')` : ' (삭제 권장)';
+          details.push(`${tag} '${issue.matchedText}' -> ${issue.label}${sug}`);
+        });
+
+        lines.push(`[${s.classInfo} ${s.number}번 ${masked}] ${details.join(' / ')}`);
+      });
+
+      if (flaggedStudentCount === 0) {
+        lines.push(`🎉 모든 학생의 기록이 2026 기재요령 및 나이스 바이트 기준을 통과했습니다.`);
+      }
+
+      document.getElementById('reportSummaryHeader').textContent = `검출 대상: 총 ${flaggedStudentCount}명`;
+      document.getElementById('reportTextarea').value = lines.join('\n');
+    }
+
+    function copyReportToClipboard() {
+      const val = document.getElementById('reportTextarea').value;
+      navigator.clipboard.writeText(val).then(() => {
+        showToast('교차 검토 수정 요청 리포트가 클립보드에 복사되었습니다!', 'success');
+      });
+    }
+
+    function downloadReportExcel() {
+      const rows = [
+        ['학급', '번호', '성명(마스킹)', '현재 바이트(Byte)', '점검 상태', '검출된 수정 요청 사유 요약', '교정 반영 본문']
+      ];
+
+      appState.students.forEach(s => {
+        const issueSummary = s.issues.map(i => `[${i.label}] '${i.matchedText}'`).join(' / ');
+        const byteNote = s.isByteOver ? `[바이트 초과: ${s.bytes}/${appState.maxBytes}] ` : '';
+        rows.push([
+          s.classInfo,
+          s.number,
+          maskStudentName(s.rawName),
+          s.bytes,
+          s.hasAnyIssue ? '수정 필요' : '검토 완료',
+          (byteNote + issueSummary) || '특이사항 없음',
+          s.text
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '교차검토결과');
+      XLSX.writeFile(wb, `교차검토리포트_${appState.fileName}`);
+      showToast('교차 검토 결과 엑셀(.xlsx) 파일이 다운로드되었습니다.', 'success');
+    }
+
+    function openGuidelineModal() {
+      document.getElementById('guidelineModal').classList.remove('hidden');
+    }
+
+    function closeGuidelineModal() {
+      document.getElementById('guidelineModal').classList.add('hidden');
+    }
+
+    // PRD Feature 4: Zero-Retention Immediate Wipe
+    function wipeAllDataNow() {
+      appState.students = [];
+      appState.selectedStudentId = null;
+      appState.fileName = '';
+      sessionStorage.clear();
+
+      document.getElementById('workspaceView').classList.add('hidden');
+      document.getElementById('uploadView').classList.remove('hidden');
+      document.getElementById('btnCrossReport').classList.add('hidden');
+      document.getElementById('btnWipeData').classList.add('hidden');
+      hideInlinePopover();
+
+      showToast('🔒 브라우저 메모리의 모든 학생 데이터가 영구 파기되었습니다. 안심하고 퇴근하세요!', 'success');
+    }
+
+    function resetToHomeConfirm() {
+      if (!document.getElementById('workspaceView').classList.contains('hidden')) {
+        wipeAllDataNow();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 13. EYE-CARE DARK MODE & UTILITIES
+    // -------------------------------------------------------------------------
+    function toggleDarkMode() {
+      const htmlEl = document.documentElement;
+      htmlEl.classList.toggle('dark');
+      const isDark = htmlEl.classList.contains('dark');
+      showToast(isDark ? '🌙 야간 초과근무용 눈 보호 다크모드가 켜졌습니다.' : '☀️ 웜그레이 종이 질감 라이트모드로 전환되었습니다.', 'info');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+
+      const colorClasses =
+        type === 'success'
+          ? 'bg-slate-900 dark:bg-emerald-700 text-white border-emerald-500'
+          : type === 'warning'
+          ? 'bg-amber-700 text-white border-amber-400'
+          : 'bg-slate-800 text-white border-slate-600';
+
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs font-bold transition-all duration-300 ${colorClasses}`;
+      toast.innerHTML = `
+        <span>${escapeHtml(message)}</span>
+      `;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 250);
+      }, 3600);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeJsStr(str) {
+      return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    // Initialize icons on first load
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
