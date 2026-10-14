@@ -427,6 +427,11 @@
         </div>
       </div>
 
+      <!-- Multi-Subject Filter Tabs Bar (Automatically appears when a student record contains multiple subjects like 공통국어1:, 통합사회1:, etc.) -->
+      <div id="subjectTabsBar" class="hidden px-4 py-2 bg-emerald-50/60 dark:bg-emerald-950/30 border-b border-eyecare-border dark:border-darkcare-border flex items-center gap-1.5 overflow-x-auto shrink-0">
+        <!-- Populated dynamically with subject pills -->
+      </div>
+
       <!-- Main Editor & Inspection Split Area -->
       <div class="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden p-3 sm:p-4 gap-3 sm:gap-4">
 
@@ -965,6 +970,7 @@
     // -------------------------------------------------------------------------
     let appState = {
       fileName: '',
+      detectedSchoolName: '',
       categoryKey: 'setuk_subj',
       categoryLabel: '과목별 세부능력 및 특기사항',
       maxChars: 500,
@@ -975,144 +981,105 @@
       lastVerifiedTime: '-',
       students: [],
       selectedStudentId: null,
+      selectedSubjectIdx: 'all', // 'all' or subject index (0, 1, 2...)
       activeIssueKey: null
     };
 
+    // Non-subject colon labels that should NOT be treated as subject headers
+    const NON_SUBJECT_LABELS = new Set([
+      '주제', '탐구주제', '탐구 주제', '연구주제', '연구 주제', '제목', '활동', '활동내용', '활동 내용',
+      '실습내용', '실습 내용', '실습기간', '실습 기간', '현장실습유형', '현장실습 직무분야', '직무분야',
+      '능력단위', '희망분야', '진로희망', '독서활동', '봉사활동', '사용자명', '출력자', '출력일시',
+      '자율동아리', '방과후학교스포츠클럽', '비고', '특기사항', '사유', '결론', '결과', '출처', '역할'
+    ]);
+
+    function isValidSubjectTitle(rawTitle) {
+      if (!rawTitle) return false;
+      const clean = rawTitle.replace(/^\([12]학기\)\s*/, '').replace(/^\*/, '').trim();
+      if (clean.length < 2 || clean.length > 22) return false;
+      if (NON_SUBJECT_LABELS.has(clean)) return false;
+      if (/^(https?|ftp|file|mailto)$/i.test(clean)) return false;
+      if (/^\d+$/.test(clean)) return false;
+      // Must start with Korean, English, or number (like 3D 프린터용 제품 제작)
+      return /^[가-힣A-Za-z0-9]/.test(clean);
+    }
+
+    // Parse a student's text into individual subjects if formatted as "과목명: 내용..."
+    function parseSubjectsFromStudentText(text) {
+      if (!text || !text.trim()) return [];
+
+      // Match subject headers at the start of text or start of a line: e.g. "공통국어1: ", "(1학기) 음악: "
+      const headerRegex = /(?:^|\n)[ \t]*((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,22}?)\s*:\s+/g;
+      const matches = [];
+      let m;
+      while ((m = headerRegex.exec(text)) !== null) {
+        const candidateTitle = m[1].trim();
+        if (isValidSubjectTitle(candidateTitle)) {
+          const leadingNewlineOffset = m[0].startsWith('\n') ? 1 : 0;
+          const headerStart = m.index + leadingNewlineOffset;
+          const bodyStart = m.index + m[0].length;
+          matches.push({
+            subjectName: candidateTitle,
+            headerPrefix: text.slice(headerStart, bodyStart),
+            headerStart,
+            bodyStart
+          });
+        }
+      }
+
+      if (matches.length === 0) return [];
+
+      return matches.map((item, idx) => {
+        const end = idx + 1 < matches.length ? matches[idx + 1].headerStart : text.length;
+        // Trim trailing newline if next subject follows
+        const rawSlice = text.slice(item.bodyStart, end);
+        const bodyText = rawSlice.replace(/\n+$/, '');
+        const bytes = calculateNeisBytes(bodyText);
+        return {
+          idx,
+          subjectName: item.subjectName,
+          headerPrefix: item.headerPrefix,
+          headerStart: item.headerStart,
+          bodyStart: item.bodyStart,
+          end,
+          bodyText,
+          bytes,
+          chars: bodyText.length,
+          isByteOver: bytes > appState.maxBytes
+        };
+      });
+    }
+
     // -------------------------------------------------------------------------
     // 3. NAME MASKING & NEIS BYTE CALCULATOR (2026 GUIDELINE p.208)
-    //    한글 1자 = 3Byte, 영문·숫자·공백 1자 = 1Byte, 엔터(Enter) = 1Byte
-    // -------------------------------------------------------------------------
-    function maskStudentName(rawName) {
-      if (!rawName) return '학*생';
-      const clean = String(rawName).trim();
-      if (!appState.maskNames) return clean;
-      if (clean.length <= 1) return clean;
-      if (clean.length === 2) return clean[0] + '*';
-      if (clean.length === 3) return clean[0] + '*' + clean[2];
-      return clean[0] + '*'.repeat(clean.length - 2) + clean[clean.length - 1];
-    }
-
-    function calculateNeisBytes(text) {
-      if (!text) return 0;
-      // Normalize CRLF to LF so Enter is counted as 1 Byte (p.208: 엔터(Enter)는 1Byte임)
-      const normalized = String(text).replace(/\r\n/g, '\n');
-      let totalBytes = 0;
-      for (let i = 0; i < normalized.length; i++) {
-        const code = normalized.charCodeAt(i);
-        if (code === 10) {
-          // Enter (\n) = 1 Byte
-          totalBytes += 1;
-        } else if (code <= 0x007F) {
-          // ASCII (English, Numbers, Basic Punctuation, Space) = 1 Byte
-          totalBytes += 1;
-        } else {
-          // Korean Hangul & Full-width characters = 3 Bytes
-          totalBytes += 3;
-        }
-      }
-      return totalBytes;
-    }
-
-    // Smart dynamic replacement helper for verb endings
-    function getContextualReplacements(rule, matchedText) {
-      if (rule.id === 'style_ending_ham') {
-        const stem = matchedText.replace(/(했습니다\.|하였습니다\.|하였다\.)$/, '');
-        return [`${stem}함.`];
-      }
-      if (rule.id === 'style_ending_boim') {
-        if (matchedText.startsWith('보여') || matchedText.startsWith('보였')) return ['보임.', '보여줌.'];
-        if (matchedText.startsWith('기대') || matchedText.startsWith('사료') || matchedText.startsWith('생각')) return ['기대됨.'];
-        if (matchedText.startsWith('도왔')) return ['도움.'];
-        if (matchedText.startsWith('이끌어')) return ['이끌어냄.'];
-      }
-      return rule.replacements || [];
-    }
-
-    // -------------------------------------------------------------------------
-    // 4. REAL-TIME 2026 GUIDELINE ANALYZER
-    // -------------------------------------------------------------------------
-    function analyzeStudentText(text, ignoredKeys = []) {
-      const issues = [];
-      if (!text) return issues;
-
-      GUIDELINE_RULES.forEach(rule => {
-        const regex = new RegExp(rule.regex.source, rule.regex.flags);
-        let match;
-        while ((match = regex.exec(text)) !== null) {
-          const matchedText = match[0];
-          const start = match.index;
-          const end = start + matchedText.length;
-          const issueKey = `${rule.id}_${start}_${matchedText}`;
-
-          if (ignoredKeys.includes(issueKey)) continue;
-
-          issues.push({
-            key: issueKey,
-            ruleId: rule.id,
-            type: rule.type,
-            label: rule.label,
-            matchedText,
-            start,
-            end,
-            reason: rule.reason,
-            basis: rule.basis,
-            replacements: getContextualReplacements(rule, matchedText),
-            canDelete: rule.canDelete
-          });
-        }
-      });
-
-      // Check missing final period ('.') for narrative records
-      const trimmed = text.trim();
-      if (trimmed.length > 5 && !/[.!?]$/.test(trimmed) && appState.categoryKey !== 'club_auto30') {
-        const lastSpaceIdx = text.lastIndexOf(' ');
-        const startIdx = lastSpaceIdx !== -1 ? lastSpaceIdx + 1 : Math.max(0, text.length - 5);
-        const matchedSlice = text.slice(startIdx);
-        const issueKey = `style_missing_period_${startIdx}`;
-        if (!ignoredKeys.includes(issueKey)) {
-          issues.push({
-            key: issueKey,
-            ruleId: 'style_missing_period',
-            type: 'style',
-            label: '마지막 문장 종결 마침표(.) 누락 확인',
-            matchedText: matchedSlice,
-            start: startIdx,
-            end: text.length,
-            reason: "서술형 문장 끝에는 명사형 종결어미 뒤 마침표('.')가 정확히 찍혀 있는지 확인하세요.",
-            basis: '2026 학교생활기록부 기재요령 제4조 처리요령 참고 (p.30)',
-            replacements: [matchedSlice.trim() + '.'],
-            canDelete: false
-          });
-        }
-      }
-
-      // Sort by start index and remove overlapping spans (prioritizing critical > warning > style)
-      const priorityOrder = { critical: 1, warning: 2, style: 3 };
-      issues.sort((a, b) => {
-        if (a.start !== b.start) return a.start - b.start;
-        return priorityOrder[a.type] - priorityOrder[b.type];
-      });
-
-      const nonOverlapping = [];
-      let lastEnd = -1;
-      for (const item of issues) {
-        if (item.start >= lastEnd) {
-          nonOverlapping.push(item);
-          lastEnd = item.end;
-        }
-      }
-
+// ... existing code ... -->
       return nonOverlapping;
     }
 
     function enrichStudentRecord(student) {
       student.ignoredKeys = student.ignoredKeys || [];
       student.issues = analyzeStudentText(student.text, student.ignoredKeys);
-      student.bytes = calculateNeisBytes(student.text);
+      student.subjects = parseSubjectsFromStudentText(student.text);
+
+      if (student.subjects.length > 0 && appState.categoryKey === 'setuk_subj') {
+        // When the record has "과목명: 본문" structure (single or multi-subject), evaluate NEIS byte limits per subject body!
+        student.totalCombinedBytes = calculateNeisBytes(student.text);
+        const maxSubj = student.subjects.reduce((prev, curr) => (curr.bytes > prev.bytes ? curr : prev), student.subjects[0]);
+        student.bytes = maxSubj.bytes; // Representative byte count (highest subject)
+        student.maxSubjectName = maxSubj.subjectName;
+        student.overByteSubjects = student.subjects.filter(sub => sub.bytes > appState.maxBytes);
+        student.isByteOver = student.overByteSubjects.length > 0;
+      } else {
+        student.bytes = calculateNeisBytes(student.text);
+        student.totalCombinedBytes = student.bytes;
+        student.maxSubjectName = '';
+        student.overByteSubjects = [];
+        student.isByteOver = student.bytes > appState.maxBytes;
+      }
+
       student.criticalCount = student.issues.filter(i => i.type === 'critical').length;
       student.warningCount = student.issues.filter(i => i.type === 'warning').length;
       student.styleCount = student.issues.filter(i => i.type === 'style').length;
-      student.isByteOver = student.bytes > appState.maxBytes;
       student.hasAnyIssue = (student.issues.length > 0) || student.isByteOver;
 
       if (!student.hasAnyIssue && student.reviewed === undefined) {
@@ -1124,52 +1091,320 @@
     }
 
     function updateVerificationTimestamp() {
-      const now = new Date();
-      appState.lastVerifiedTime = now.toTimeString().split(' ')[0];
-      const timeEl = document.getElementById('lastVerifiedTimeText');
-      if (timeEl) {
-        timeEl.textContent = `최근 검증: ${appState.lastVerifiedTime} (${appState.maxChars}자/${appState.maxBytes}B 기준)`;
-      }
+// ... existing code ... -->
+      showToast('지원하지 않는 파일 형식입니다. (.xlsx, .xls, .csv, .pdf, .txt 파일을 업로드해 주세요)', 'warning');
     }
 
-    function reAnalyzeAllStudents(resetIgnored = false) {
-      appState.students.forEach(s => {
-        if (resetIgnored) {
-          s.ignoredKeys = [];
-          s.manuallyReviewed = false;
-        }
-        enrichStudentRecord(s);
-      });
-      updateVerificationTimestamp();
-    }
+    // Helper: Intelligently merge page-break or multi-row text continuations for the same student
+    function mergeContinuationText(prevText, nextText, prevEndedWithSpace = false) {
+      if (!prevText) return nextText;
+      if (!nextText) return prevText;
 
-    // Explicit Full Re-Verification ("검증 새로고침") Function (Req 3)
-    function triggerFullVerification(resetIgnored = true) {
-      if (appState.students.length === 0) return;
+      const trimmedPrev = prevText.trimEnd();
+      const trimmedNext = nextText.trimStart();
 
-      // Spin icon feedback
-      ['topVerifyIcon', 'sideVerifyIcon'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.classList.remove('animate-spin-once');
-          void el.offsetWidth;
-          el.classList.add('animate-spin-once');
-        }
-      });
+      // Check if nextText starts with a new subject header (e.g., "통합사회1:", "공통수학1:", "(2학기)")
+      const startsWithSubject = /^(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ\s]{2,18}\s*:\s+/.test(trimmedNext);
+      const endsWithSentencePunct = /[.!?]$/.test(trimmedPrev);
 
-      // If currently in direct typing mode, sync textarea value first
-      if (appState.directEditMode) {
-        const currentStudent = appState.students.find(s => s.id === appState.selectedStudentId);
-        const rawVal = document.getElementById('rawEditorTextarea').value;
-        if (currentStudent) currentStudent.text = rawVal;
+      if (startsWithSubject || endsWithSentencePunct) {
+        return `${trimmedPrev}\n${trimmedNext}`;
       }
 
-      reAnalyzeAllStudents(resetIgnored);
-      renderWorkspaceAll();
+      // Mid-sentence page-break split (e.g., "...논" + "리정연하게...", "...검" + "증을 통해...")
+      if (prevEndedWithSpace || /^\s/.test(nextText)) {
+        return `${trimmedPrev} ${trimmedNext}`;
+      }
+      return `${trimmedPrev}${trimmedNext}`;
+    }
 
+    // Helper: Normalize multi-subject inline text so each "과목명: " after a period starts on a new line for clean readability
+    function normalizeSubjectLineBreaks(text) {
+      if (!text) return '';
+      return text.replace(/([.!?])[ \t]+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ]{2,16}\s*:\s+)/g, (full, punct, subjHeader) => {
+        const titleCandidate = subjHeader.replace(/:\s*$/, '').trim();
+        if (isValidSubjectTitle(titleCandidate)) {
+          return `${punct}\n${subjHeader}`;
+        }
+        return full;
+      });
+    }
+
+    // Helper: Detect if a row or line is NEIS metadata, date, user info, school footer, class banner, or table header
+    function classifyNeisRow(rawCells) {
+      const cells = rawCells
+        .map((c, idx) => ({ colIdx: idx, raw: String(c ?? ''), text: String(c ?? '').trim() }))
+        .filter(c => c.text.length > 0);
+
+      if (cells.length === 0) return { type: 'empty' };
+
+      const joined = cells.map(c => c.text).join(' ');
+      const noSpaceJoined = joined.replace(/\s+/g, '');
+
+      // 1) Date / Print timestamp row (e.g., "2026.10.14.", "2026-10-14", "출력일시 : 2026.10.14")
+      if (/^(출력일시|작성일시|인쇄일시)?\s*[:：]?\s*\d{4}\s*[.\-/년]\s*\d{1,2}\s*[.\-/월]\s*\d{1,2}[.\-/일]?(\s+\d{1,2}:\d{2}(:\d{2})?)?$/.test(joined)) {
+        return { type: 'metadata' };
+      }
+
+      // 2) NEIS User / Teacher / Approval row (e.g., "사용자명 : 진한결", "담임 : ...", "결재")
+      if (/^(사용자명|출력자|작성자|담임교사|학급담임|교과담당|담당교사)\s*[:：]/.test(joined) && joined.length < 40) {
+        return { type: 'metadata' };
+      }
+
+      // 3) Class / Grade Banner row (e.g., "1학년 2반", "제 1학년 2반", "전기과 2학년 1반")
+      if (cells.length <= 3 && /^(?:[가-힣]+\s+)?제?\s*\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(joined)) {
+        return { type: 'class_banner', classInfo: joined.replace(/\s+/g, ' ').trim() };
+      }
+
+      // 4) School Name & Page Number Footer/Header row (e.g., "서전고등학교" + "1 / 32" or "32")
+      const nonPageCells = cells.filter(c => !/^(\d+\s*\/\s*\d+|-\s*\d+\s*-|\d{1,3}|\/|쪽|페이지)$/.test(c.text));
+      if (nonPageCells.length === 0) {
+        return { type: 'page_number' };
+      }
+      if (
+        nonPageCells.length === 1 &&
+        /^[가-힣A-Za-z0-9()·\s]{2,20}(고등학교|고교|중학교|초등학교|학교|교육청)$/.test(nonPageCells[0].text)
+      ) {
+        return { type: 'school_footer', schoolName: nonPageCells[0].text.trim() };
+      }
+
+      // 5) Table Column Header Row (e.g., "번 호 | 성 명 | 학 년 | 세부능력 및 특기사항")
+      const headerKeywords = new Set([
+        '번호', '성명', '이름', '학년', '반', '학번', '학기', '교과', '과목', '과목명', '학점', '단위수',
+        '세부능력및특기사항', '과목별세부능력및특기사항', '개인별세부능력및특기사항', '특기사항',
+        '창의적체험활동상황', '행동특성및종합의견', '독서활동상황', '출결상황', '수상경력',
+        '영역', '시간', '이수시간', '비고', '결재', '담임', '부장', '교감', '교장', '학교생활기록부'
+      ]);
+
+      const allCellsAreHeaders = cells.every(c => {
+        const norm = c.text.replace(/\s+/g, '');
+        return headerKeywords.has(norm);
+      });
+
+      if (allCellsAreHeaders) {
+        const colMap = { numCol: null, nameCol: null, gradeCol: null };
+        cells.forEach(c => {
+          const norm = c.text.replace(/\s+/g, '');
+          if (norm === '번호' && colMap.numCol === null) colMap.numCol = c.colIdx;
+          if ((norm === '성명' || norm === '이름') && colMap.nameCol === null) colMap.nameCol = c.colIdx;
+          if (norm === '학년' && colMap.gradeCol === null) colMap.gradeCol = c.colIdx;
+        });
+        return { type: 'table_header', colMap };
+      }
+
+      // Also skip single-cell title rows like "세부능력 및 특기사항", "학교생활기록부", "교과학습발달상황"
+      if (cells.length <= 2 && headerKeywords.has(noSpaceJoined)) {
+        return { type: 'table_header', colMap: null };
+      }
+
+      return { type: 'data', cells };
+    }
+
+    async function extractStudentsFromNeisPdf(uint8Array) {
+      const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+      const pdf = await loadingTask.promise;
+      const allRows = [];
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+
+        const lineBuckets = [];
+        textContent.items.forEach(item => {
+          const str = String(item.str || '');
+          if (!str.trim()) return;
+          const x = item.transform[4];
+          const y = item.transform[5];
+
+          let bucket = lineBuckets.find(b => Math.abs(b.y - y) <= 4);
+          if (!bucket) {
+            bucket = { y, items: [] };
+            lineBuckets.push(bucket);
+          }
+          bucket.items.push({ x, str });
+        });
+
+        lineBuckets.sort((a, b) => b.y - a.y);
+
+        lineBuckets.forEach(bucket => {
+          bucket.items.sort((a, b) => a.x - b.x);
+          allRows.push(bucket.items.map(i => i.str));
+        });
+      }
+
+      return extractStudentsFromNeisRows(allRows);
+    }
+
+    function extractStudentsFromNeisRows(rows) {
+      const result = [];
+      let currentClassInfo = '업로드 학급';
+      let detectedSchool = '';
+
+      const bannedNameWords = new Set([
+        '세부능력', '특기사항', '자율활동', '자치활동', '동아리활동', '진로활동',
+        '행동특성', '종합의견', '독서활동', '과목별', '개인별', '공통국어', '공통수학',
+        '공통영어', '통합사회', '통합과학', '한국사', '학교생활', '기록부', '사용자명'
+      ]);
+
+      for (let r = 0; r < rows.length; r++) {
+        const rawRow = rows[r];
+        if (!Array.isArray(rawRow)) continue;
+
+        const classification = classifyNeisRow(rawRow);
+        if (classification.type === 'empty' || classification.type === 'metadata' || classification.type === 'page_number' || classification.type === 'table_header') {
+          continue;
+        }
+        if (classification.type === 'class_banner') {
+          currentClassInfo = classification.classInfo;
+          continue;
+        }
+        if (classification.type === 'school_footer') {
+          detectedSchool = classification.schoolName;
+          continue;
+        }
+
+        const cells = classification.cells;
+
+        // Identify the main record text cell (longest cell in the row)
+        let longestCellObj = null;
+        cells.forEach(cellObj => {
+          if (!longestCellObj || cellObj.text.length > longestCellObj.text.length) {
+            longestCellObj = cellObj;
+          }
+        });
+
+        if (!longestCellObj || longestCellObj.text.length < 4) continue;
+
+        // Check if other cells to the left of longestCellObj contain [번호], [성명], [학년/반]
+        let detectedName = '';
+        let nameColIdx = -1;
+        let rowClassInfo = '';
+
+        // 1) Find student name cell (excluding the main text cell)
+        for (const cellObj of cells) {
+          if (cellObj.colIdx === longestCellObj.colIdx) continue;
+          const val = cellObj.text;
+
+          if (/^(?:[가-힣]+\s+)?제?\s*\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(val)) {
+            rowClassInfo = val.replace(/\s+/g, ' ');
+            continue;
+          }
+
+          const cleanNameCandidate = val.replace(/\s+/g, '');
+          if (
+            !detectedName &&
+            /^[가-힣*]{2,5}$/.test(cleanNameCandidate) &&
+            !bannedNameWords.has(cleanNameCandidate) &&
+            !/(고등학교|중학교|초등학교|학교|교육청|올림피아드)$/.test(cleanNameCandidate)
+          ) {
+            detectedName = cleanNameCandidate;
+            nameColIdx = cellObj.colIdx;
+          }
+        }
+
+        // 2) Find student number (번호):
+        // CRITICAL: In NEIS tables ([번 호] | [성 명] | [학 년] | [세부능력 및 특기사항]),
+        // the student number is ALWAYS to the LEFT of the student name (colIdx < nameColIdx).
+        // The number to the RIGHT of the student name is 학년 (Grade 1, 2, 3), which must NOT overwrite 번호!
+        let detectedNum = null;
+        for (const cellObj of cells) {
+          if (cellObj.colIdx === longestCellObj.colIdx) continue;
+          if (nameColIdx !== -1 && cellObj.colIdx >= nameColIdx) continue; // Ignore 학년 column to the right of 성명
+
+          const numMatch = cellObj.text.match(/^(\d{1,3})\s*번?$/);
+          if (numMatch) {
+            detectedNum = parseInt(numMatch[1], 10);
+            break; // Take the first number to the left of the name (번호)
+          }
+        }
+
+        // Also check if a single cell combined "1 홍길동 ..." (common in PDF line extraction)
+        let mainText = longestCellObj.text;
+        const mainRawEndedWithSpace = /\s$/.test(longestCellObj.raw);
+
+        if (!detectedName && cells.length === 1) {
+          const inlineMatch = mainText.match(/^(?:(\d{1,2}\s*학년\s*\d{1,2}\s*반)\s+)?(\d{1,3})\s*번?\s+([가-힣*]{2,5})(?:\s+[123])?\s+(.*)$/s);
+          if (inlineMatch && !bannedNameWords.has(inlineMatch[3])) {
+            if (inlineMatch[1]) currentClassInfo = inlineMatch[1].replace(/\s+/g, ' ');
+            detectedNum = parseInt(inlineMatch[2], 10);
+            detectedName = inlineMatch[3];
+            mainText = inlineMatch[4].trim();
+          }
+        }
+
+        if (rowClassInfo) {
+          currentClassInfo = rowClassInfo;
+        }
+
+        // 3) Check if this row is a page-break / multi-row continuation of the previous student!
+        const prevStudent = result.length > 0 ? result[result.length - 1] : null;
+
+        // Case A: Same student name (and same number or blank number) repeated after a page break
+        if (
+          prevStudent &&
+          detectedName &&
+          prevStudent.rawName === detectedName &&
+          (detectedNum === null || prevStudent.number === detectedNum)
+        ) {
+          prevStudent.text = normalizeSubjectLineBreaks(
+            mergeContinuationText(prevStudent.text, mainText, prevStudent._lastRawEndedWithSpace)
+          );
+          prevStudent.originalText = prevStudent.text;
+          prevStudent._lastRawEndedWithSpace = mainRawEndedWithSpace;
+          continue;
+        }
+
+        // Case B: Continuation row with NO student name and NO student number (only text cell continues on next row)
+        if (prevStudent && !detectedName && detectedNum === null) {
+          prevStudent.text = normalizeSubjectLineBreaks(
+            mergeContinuationText(prevStudent.text, mainText, prevStudent._lastRawEndedWithSpace)
+          );
+          prevStudent.originalText = prevStudent.text;
+          prevStudent._lastRawEndedWithSpace = mainRawEndedWithSpace;
+          continue;
+        }
+
+        // Otherwise, create a new student entry
+        const finalNumber = detectedNum !== null ? detectedNum : (result.length + 1);
+        const finalName = detectedName || `학생${result.length + 1}`;
+        const normalizedText = normalizeSubjectLineBreaks(mainText);
+
+        result.push({
+          id: result.length + 1,
+          classInfo: currentClassInfo,
+          number: finalNumber,
+          rawName: finalName,
+          text: normalizedText,
+          originalText: normalizedText,
+          ignoredKeys: [],
+          manuallyReviewed: false,
+          _lastRawEndedWithSpace: mainRawEndedWithSpace
+        });
+      }
+
+      if (detectedSchool) {
+        appState.detectedSchoolName = detectedSchool;
+      }
+
+      return result;
+    }
+
+    function finishFileLoad(fileName, students, startTime) {
+      appState.fileName = fileName;
+      appState.students = students;
+      appState.directEditMode = false;
+      appState.selectedSubjectIdx = 'all';
+      reAnalyzeAllStudents(true);
+
+      const firstIssue = appState.students.find(s => s.hasAnyIssue) || appState.students[0];
+      appState.selectedStudentId = firstIssue ? firstIssue.id : null;
+
+      const elapsedMs = Math.max(10, Math.round(performance.now() - startTime));
       const issueCount = appState.students.filter(s => s.hasAnyIssue).length;
+
+      enterWorkspaceView();
       showToast(
-        `🔍 검증 새로고침 완료! 전체 ${appState.students.length}명 재검증 결과 점검 필요: ${issueCount}명 (${appState.categoryLabel} · ${appState.maxBytes.toLocaleString()} Byte 기준)`,
+        `📂 '${fileName}' (학생 ${appState.students.length}명) 검증 완료! [점검 필요: ${issueCount}명 · ${elapsedMs}ms 소요]`,
         issueCount > 0 ? 'warning' : 'success'
       );
     }
@@ -1621,6 +1856,11 @@
           badgesHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold">✅ 통과</span>`;
         }
 
+        const byteSubLabel =
+          student.subjects && student.subjects.length > 1
+            ? `${student.subjects.length}과목 (최대 ${student.bytes}B)`
+            : `${student.bytes}B`;
+
         return `
           <button onclick="selectStudent(${student.id})"
                   class="w-full text-left px-3.5 py-2.5 transition flex items-center justify-between gap-2 ${
@@ -1632,9 +1872,9 @@
               <div class="flex items-center gap-1.5">
                 <span class="text-xs font-mono font-bold text-slate-400 dark:text-slate-500">${String(student.number).padStart(2, '0')}번</span>
                 <span class="text-sm font-bold ${isSelected ? 'text-emerald-950 dark:text-emerald-200' : 'text-slate-800 dark:text-slate-200'}">${displayName}</span>
-                <span class="text-[10px] font-mono text-slate-400">${student.bytes}B</span>
+                <span class="text-[10px] font-mono text-slate-400">${byteSubLabel}</span>
               </div>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-[160px]">${escapeHtml(student.text || '(내용 없음)')}</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-[165px]">${escapeHtml(student.text || '(내용 없음)')}</p>
             </div>
             <div class="flex items-center gap-1 shrink-0 flex-wrap justify-end">
               ${badgesHtml}
@@ -1646,46 +1886,88 @@
 
     function selectStudent(studentId) {
       appState.selectedStudentId = studentId;
+      appState.selectedSubjectIdx = 'all';
       appState.activeIssueKey = null;
       hideInlinePopover();
       renderWorkspaceAll();
     }
 
-    function navigateStudent(direction) {
-      const filterOnlyIssues = document.getElementById('filterIssueOnly').checked;
-      const list = filterOnlyIssues ? appState.students.filter(s => s.hasAnyIssue) : appState.students;
-      if (list.length === 0) return;
-
-      const idx = list.findIndex(s => s.id === appState.selectedStudentId);
-      const nextIdx = (idx + direction + list.length) % list.length;
-      selectStudent(list[nextIdx].id);
+    function selectSubjectTab(subjIdx) {
+      appState.selectedSubjectIdx = subjIdx;
+      hideInlinePopover();
+      renderActiveStudentEditor();
+      lucide.createIcons();
     }
 
-    function renderActiveStudentEditor() {
-      const student = appState.students.find(s => s.id === appState.selectedStudentId);
-      if (!student) return;
+    function renderSubjectTabsBar(student) {
+      const bar = document.getElementById('subjectTabsBar');
+      if (!bar) return;
 
-      document.getElementById('activeStudentClassNo').textContent = `${student.classInfo} ${student.number}번`;
-      document.getElementById('activeStudentName').textContent = maskStudentName(student.rawName);
+      const subjects = student.subjects || [];
+      if (subjects.length <= 1 || appState.categoryKey !== 'setuk_subj') {
+        bar.classList.add('hidden');
+        bar.innerHTML = '';
+        return;
+      }
 
-      const badgeBox = document.getElementById('activeStudentBadges');
-      let headerBadges = '';
-      if (student.criticalCount > 0) {
-        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-xs font-bold border border-rose-200 dark:border-rose-800">🔴 기재 금지 ${student.criticalCount}건</span>`;
-      }
-      if (student.warningCount > 0) {
-        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">🟡 기재 주의 ${student.warningCount}건</span>`;
-      }
+      bar.classList.remove('hidden');
+      const isAll = appState.selectedSubjectIdx === 'all';
+
+      let html = `
+        <span class="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 shrink-0 mr-1 flex items-center gap-1">
+          <i data-lucide="layers" class="w-3.5 h-3.5"></i>과목별 세특 점검(${subjects.length}과목):
+        </span>
+        <button onclick="selectSubjectTab('all')"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition ${
+                  isAll
+                    ? 'bg-emerald-700 text-white shadow-2xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-eyecare-border dark:border-darkcare-border hover:bg-eyecare-muted'
+                }">
+          전체 과목 보기 (${subjects.length})
+        </button>
+      `;
+
+      subjects.forEach(sub => {
+        const isActive = appState.selectedSubjectIdx === sub.idx;
+        const overCls = sub.isByteOver
+          ? 'border-rose-400 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60'
+          : 'border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800';
+
+        html += `
+          <button onclick="selectSubjectTab(${sub.idx})"
+                  class="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 border transition flex items-center gap-1 ${
+                    isActive
+                      ? 'ring-2 ring-emerald-600 bg-emerald-600 text-white border-emerald-600'
+                      : overCls
+                  }">
+            <span>${escapeHtml(sub.subjectName)}</span>
+            <span class="text-[10px] font-mono ${isActive ? 'text-emerald-100' : sub.isByteOver ? 'text-rose-600 dark:text-rose-400 font-extrabold' : 'text-slate-400'}">${sub.bytes}B${sub.isByteOver ? ' 🔴초과' : ''}</span>
+          </button>
+        `;
+      });
+
+      bar.innerHTML = html;
+    }
+
+    function navigateStudent(direction) {
+// ... existing code ... -->
       if (student.styleCount > 0) {
         headerBadges += `<span class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">🔵 어미/특수문자/맞춤법 ${student.styleCount}건</span>`;
       }
       if (student.isByteOver) {
-        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-xs font-bold">용량 초과 (+${student.bytes - appState.maxBytes} Byte)</span>`;
+        if (student.overByteSubjects && student.overByteSubjects.length > 0) {
+          const overNames = student.overByteSubjects.map(s => `${s.subjectName}(+${s.bytes - appState.maxBytes}B)`).join(', ');
+          headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-xs font-bold">과목 용량 초과: ${escapeHtml(overNames)}</span>`;
+        } else {
+          headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-xs font-bold">용량 초과 (+${student.bytes - appState.maxBytes} Byte)</span>`;
+        }
       }
       if (!student.hasAnyIssue && student.text.trim().length > 0) {
         headerBadges = `<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-300 dark:border-emerald-800">✅ 2026 기재요령 및 용량 기준 통과</span>`;
       }
       badgeBox.innerHTML = headerBadges;
+
+      renderSubjectTabsBar(student);
 
       const btnBulkStyle = document.getElementById('btnBulkFixStyle');
       const bulkStyleCount = document.getElementById('bulkStyleCount');
@@ -1705,22 +1987,35 @@
     }
 
     function buildHighlightedHtml(student) {
-      const text = student.text || '';
-      if (!text.trim()) {
+      const fullText = student.text || '';
+      if (!fullText.trim()) {
         return `<div class="text-slate-400 dark:text-slate-500 text-sm py-8 text-center">우측 상단의 <strong>[직접 타이핑 편집]</strong> 버튼을 눌러 텍스트를 붙여넣거나 새 파일을 업로드하세요.</div>`;
       }
 
-      const issues = student.issues || [];
+      // If a specific subject tab is selected, only render that subject's slice while keeping original issue offsets
+      let rangeStart = 0;
+      let rangeEnd = fullText.length;
+      if (
+        appState.selectedSubjectIdx !== 'all' &&
+        student.subjects &&
+        student.subjects[appState.selectedSubjectIdx]
+      ) {
+        const sub = student.subjects[appState.selectedSubjectIdx];
+        rangeStart = sub.headerStart;
+        rangeEnd = sub.end;
+      }
+
+      const issues = (student.issues || []).filter(i => i.start >= rangeStart && i.end <= rangeEnd);
       if (issues.length === 0) {
-        return escapeHtml(text);
+        return escapeHtml(fullText.slice(rangeStart, rangeEnd));
       }
 
       let html = '';
-      let cursor = 0;
+      let cursor = rangeStart;
 
       issues.forEach(issue => {
         if (issue.start > cursor) {
-          html += escapeHtml(text.slice(cursor, issue.start));
+          html += escapeHtml(fullText.slice(cursor, issue.start));
         }
         const cls =
           issue.type === 'critical'
@@ -1731,19 +2026,25 @@
         const activeCls = appState.activeIssueKey === issue.key ? 'active-token' : '';
         const badgeIcon = issue.type === 'critical' ? '🔴' : issue.type === 'warning' ? '🟡' : '🔵';
 
-        html += `<span class="${cls} ${activeCls}" onclick="handleInlineTokenClick(event, '${escapeJsStr(issue.key)}')" title="${escapeHtml(issue.label)}">${badgeIcon} ${escapeHtml(text.slice(issue.start, issue.end))}</span>`;
+        html += `<span class="${cls} ${activeCls}" onclick="handleInlineTokenClick(event, '${escapeJsStr(issue.key)}')" title="${escapeHtml(issue.label)}">${badgeIcon} ${escapeHtml(fullText.slice(issue.start, issue.end))}</span>`;
         cursor = issue.end;
       });
 
-      if (cursor < text.length) {
-        html += escapeHtml(text.slice(cursor));
+      if (cursor < rangeEnd) {
+        html += escapeHtml(fullText.slice(cursor, rangeEnd));
       }
       return html;
     }
 
     function renderInspectionCards(student) {
       const container = document.getElementById('inspectionCardsContainer');
-      const totalIssues = student.issues.length + (student.isByteOver ? 1 : 0);
+      const overCount =
+        student.overByteSubjects && student.overByteSubjects.length > 0
+          ? student.overByteSubjects.length
+          : student.isByteOver
+          ? 1
+          : 0;
+      const totalIssues = student.issues.length + overCount;
       document.getElementById('cardTotalCountBadge').textContent = `${totalIssues}건`;
 
       if (!student.text.trim()) {
@@ -1757,8 +2058,16 @@
       }
 
       if (totalIssues === 0) {
+        const multiSubjNote =
+          student.subjects && student.subjects.length > 1
+            ? `<div class="mt-2 p-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border text-[11px] text-left space-y-1 w-full">
+                <p class="font-bold text-emerald-700 dark:text-emerald-400">📊 과목별 바이트 점검 결과 (기준: 과목당 ${appState.maxBytes.toLocaleString()}B)</p>
+                ${student.subjects.map(s => `<div class="flex justify-between"><span>• ${escapeHtml(s.subjectName)}</span><span class="font-mono font-bold">${s.bytes.toLocaleString()} / ${appState.maxBytes.toLocaleString()}B (${s.chars}자)</span></div>`).join('')}
+              </div>`
+            : '';
+
         container.innerHTML = `
-          <div class="h-full flex flex-col items-center justify-center text-center p-6 space-y-2.5">
+          <div class="h-full flex flex-col items-center justify-center text-center p-5 space-y-2.5">
             <div class="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
               <i data-lucide="check-circle-2" class="w-6 h-6"></i>
             </div>
@@ -1766,6 +2075,7 @@
             <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               2026 학생부 기재요령(교육부훈령 제555호) 및 <strong>${appState.categoryLabel}(${appState.maxChars}자 / ${appState.maxBytes.toLocaleString()} Byte)</strong> 기준을 모두 충족합니다.
             </p>
+            ${multiSubjNote}
           </div>
         `;
         return;
@@ -1774,189 +2084,61 @@
       let cardsHtml = '';
 
       if (student.isByteOver) {
-        const diffBytes = student.bytes - appState.maxBytes;
-        const approxOverChars = Math.ceil(diffBytes / 3);
-        cardsHtml += `
-          <div class="p-3.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/50 border-2 border-rose-400 dark:border-rose-700 space-y-2 shadow-2xs">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold text-rose-800 dark:text-rose-300 flex items-center gap-1">
-                🔴 영역별 최대 입력 용량(Byte) 초과!
-              </span>
-              <span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">+${diffBytes} Byte (약 ${approxOverChars}자)</span>
+        if (student.overByteSubjects && student.overByteSubjects.length > 0) {
+          student.overByteSubjects.forEach(sub => {
+            const diffBytes = sub.bytes - appState.maxBytes;
+            const approxOverChars = Math.ceil(diffBytes / 3);
+            cardsHtml += `
+              <div class="p-3.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/50 border-2 border-rose-400 dark:border-rose-700 space-y-2 shadow-2xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-extrabold text-rose-800 dark:text-rose-300 flex items-center gap-1">
+                    🔴 [${escapeHtml(sub.subjectName)}] 최대 용량(Byte) 초과!
+                  </span>
+                  <span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">+${diffBytes} Byte (약 ${approxOverChars}자)</span>
+                </div>
+                <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <strong>${escapeHtml(sub.subjectName)}</strong> 본문이 <strong>${sub.bytes.toLocaleString()} Byte (${sub.chars}자)</strong>로 과목별 최대 기준인 <strong>${appState.maxChars}자(${appState.maxBytes.toLocaleString()} Byte)</strong>를 초과했습니다.
+                </p>
+                <div class="flex gap-1.5 pt-1">
+                  <button onclick="selectSubjectTab(${sub.idx})" class="flex-1 py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 text-xs font-bold transition">
+                    해당 과목만 보기
+                  </button>
+                  <button onclick="compressStudentText()" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-2xs">
+                    <i data-lucide="shrink" class="w-3.5 h-3.5"></i>
+                    <span>문장 간결화 압축</span>
+                  </button>
+                </div>
+                <div class="pt-1 border-t border-rose-200/70 dark:border-rose-800/70 text-[11px] text-rose-800/80 dark:text-rose-300/80 font-medium">
+                  📖 근거: 2026 학교생활기록부 기재요령 [참고자료 8] 과목별 최대 글자수(p.208)
+                </div>
+              </div>
+            `;
+          });
+        } else {
+          const diffBytes = student.bytes - appState.maxBytes;
+          const approxOverChars = Math.ceil(diffBytes / 3);
+          cardsHtml += `
+            <div class="p-3.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/50 border-2 border-rose-400 dark:border-rose-700 space-y-2 shadow-2xs">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-rose-800 dark:text-rose-300 flex items-center gap-1">
+                  🔴 영역별 최대 입력 용량(Byte) 초과!
+                </span>
+                <span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">+${diffBytes} Byte (약 ${approxOverChars}자)</span>
+              </div>
+              <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                현재 <strong>${student.bytes.toLocaleString()} Byte</strong>로 <strong>${appState.categoryLabel}</strong> 최대 기준인 <strong>${appState.maxChars}자(${appState.maxBytes.toLocaleString()} Byte)</strong>를 초과했습니다. (입력 글자 수 초과를 이유로 타 영역에 입력 금지)
+              </p>
+              <div class="pt-1">
+                <button onclick="compressStudentText()" class="w-full py-1.5 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs">
+                  <i data-lucide="shrink" class="w-3.5 h-3.5"></i>
+                  <span>문장 간결화 압축 실행</span>
+                </button>
+              </div>
+              <div class="pt-1 border-t border-rose-200/70 dark:border-rose-800/70 text-[11px] text-rose-800/80 dark:text-rose-300/80 font-medium">
+                📖 근거: 2026 학교생활기록부 기재요령 제4조(p.28) 및 [참고자료 8] 최대 글자수(p.208)
+              </div>
             </div>
-            <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-              현재 <strong>${student.bytes.toLocaleString()} Byte</strong>로 <strong>${appState.categoryLabel}</strong> 최대 기준인 <strong>${appState.maxChars}자(${appState.maxBytes.toLocaleString()} Byte)</strong>를 초과했습니다. (입력 글자 수 초과를 이유로 타 영역에 입력 금지)
-            </p>
-            <div class="pt-1">
-              <button onclick="compressStudentText()" class="w-full py-1.5 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs">
-                <i data-lucide="shrink" class="w-3.5 h-3.5"></i>
-                <span>문장 간결화 압축 실행</span>
-              </button>
-            </div>
-            <div class="pt-1 border-t border-rose-200/70 dark:border-rose-800/70 text-[11px] text-rose-800/80 dark:text-rose-300/80 font-medium">
-              📖 근거: 2026 학교생활기록부 기재요령 제4조(p.28) 및 [참고자료 8] 최대 글자수(p.208)
-            </div>
-          </div>
-        `;
-      }
-
-      student.issues.forEach(issue => {
-        const isCritical = issue.type === 'critical';
-        const isWarning = issue.type === 'warning';
-
-        const cardBorder = isCritical
-          ? 'border-rose-300 dark:border-rose-800 bg-white dark:bg-darkcare-card'
-          : isWarning
-          ? 'border-amber-300 dark:border-amber-800 bg-white dark:bg-darkcare-card'
-          : 'border-blue-200 dark:border-blue-900 bg-white dark:bg-darkcare-card';
-
-        const tagBadge = isCritical
-          ? `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[10px] font-extrabold">🔴 기재 금지</span>`
-          : isWarning
-          ? `<span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">🟡 기재 주의</span>`
-          : `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold">🔵 문체/표기</span>`;
-
-        const replacementButtons = issue.replacements.map(rep => `
-          <button onclick="applySingleIssueFix('${escapeJsStr(issue.key)}', '${escapeJsStr(rep)}')"
-                  class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition shadow-2xs">
-            ${rep === '' ? '기호 삭제' : `'${escapeHtml(rep)}'(으)로 대체`}
-          </button>
-        `).join('');
-
-        const deleteBtn = issue.canDelete ? `
-          <button onclick="applySingleIssueFix('${escapeJsStr(issue.key)}', '')"
-                  class="px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-950 hover:bg-rose-200 text-rose-700 dark:text-rose-300 text-[11px] font-bold transition border border-rose-300 dark:border-rose-800">
-            해당 표현 삭제
-          </button>
-        ` : '';
-
-        const ignoreBtn = `
-          <button onclick="ignoreSingleIssue('${escapeJsStr(issue.key)}')"
-                  class="px-2 py-1 rounded-lg bg-eyecare-muted dark:bg-darkcare-muted hover:bg-slate-300 text-slate-600 dark:text-slate-400 text-[11px] font-semibold transition"
-                  title="예외 허용 대상이거나 문맥상 이상이 없음을 확인하고 이번 검증에서 제외합니다">
-            문맥 확인(통과)
-          </button>
-        `;
-
-        cardsHtml += `
-          <div id="card_${escapeHtml(issue.key)}" class="p-3 rounded-xl border ${cardBorder} space-y-2 shadow-2xs transition hover:shadow-sm">
-            <div class="flex items-center justify-between gap-1">
-              ${tagBadge}
-              <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate">${escapeHtml(issue.label)}</span>
-            </div>
-
-            <div class="px-2.5 py-1.5 rounded-lg bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-900 dark:text-white flex items-center justify-between">
-              <span class="truncate">"${escapeHtml(issue.matchedText)}"</span>
-            </div>
-
-            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              ${escapeHtml(issue.reason)}
-            </p>
-
-            <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
-              ${replacementButtons}
-              ${deleteBtn}
-              ${ignoreBtn}
-            </div>
-
-            <div class="pt-1.5 border-t border-eyecare-border/70 dark:border-darkcare-border/70 text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-              <span>📖 근거: ${escapeHtml(issue.basis)}</span>
-            </div>
-          </div>
-        `;
-      });
-
-      container.innerHTML = cardsHtml;
-    }
-
-    // -------------------------------------------------------------------------
-    // 7. INLINE POPOVER INTERACTION
-    // -------------------------------------------------------------------------
-    function handleInlineTokenClick(event, issueKey) {
-      event.stopPropagation();
-      const student = appState.students.find(s => s.id === appState.selectedStudentId);
-      if (!student) return;
-
-      const issue = student.issues.find(i => i.key === issueKey);
-      if (!issue) return;
-
-      appState.activeIssueKey = issueKey;
-      const popover = document.getElementById('inlinePopover');
-
-      const badgeHtml =
-        issue.type === 'critical'
-          ? `<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-extrabold text-[11px]">🔴 기재 금지</span>`
-          : issue.type === 'warning'
-          ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-extrabold text-[11px]">🟡 기재 주의</span>`
-          : `<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-extrabold text-[11px]">🔵 문체/표기</span>`;
-
-      const repBtns = issue.replacements.map(rep => `
-        <button onclick="applySingleIssueFix('${escapeJsStr(issue.key)}', '${escapeJsStr(rep)}')"
-                class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs">
-          ${rep === '' ? '[기호 삭제]' : `['${escapeHtml(rep)}' 대체]`}
-        </button>
-      `).join('');
-
-      const delBtn = issue.canDelete ? `
-        <button onclick="applySingleIssueFix('${escapeJsStr(issue.key)}', '')"
-                class="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs">
-          [표현 삭제]
-        </button>
-      ` : '';
-
-      popover.innerHTML = `
-        <div class="space-y-2.5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1.5">
-              ${badgeHtml}
-              <span class="font-bold text-slate-800 dark:text-slate-100">${escapeHtml(issue.label)}</span>
-            </div>
-            <button onclick="hideInlinePopover()" class="text-slate-400 hover:text-slate-600">✕</button>
-          </div>
-          <p class="text-slate-600 dark:text-slate-300 leading-relaxed">${escapeHtml(issue.reason)}</p>
-          <div class="flex items-center gap-1.5 flex-wrap">
-            ${repBtns}
-            ${delBtn}
-            <button onclick="ignoreSingleIssue('${escapeJsStr(issue.key)}')" class="px-2 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold">
-              [문맥 확인 통과]
-            </button>
-          </div>
-          <div class="pt-1.5 border-t border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-            📖 근거: ${escapeHtml(issue.basis)}
-          </div>
-        </div>
-      `;
-
-      const editorBox = document.getElementById('highlightEditorContainer');
-      const rect = event.target.getBoundingClientRect();
-      const boxRect = editorBox.getBoundingClientRect();
-
-      let topPos = rect.bottom - boxRect.top + 38;
-      let leftPos = rect.left - boxRect.left + 12;
-
-      if (leftPos + 350 > boxRect.width) {
-        leftPos = Math.max(12, boxRect.width - 360);
-      }
-      if (topPos + 190 > boxRect.height) {
-        topPos = Math.max(42, rect.top - boxRect.top - 155);
-      }
-
-      popover.style.top = `${topPos}px`;
-      popover.style.left = `${leftPos}px`;
-      popover.classList.remove('hidden');
-    }
-
-    function hideInlinePopover() {
-      const popover = document.getElementById('inlinePopover');
-      if (popover) popover.classList.add('hidden');
-      appState.activeIssueKey = null;
-    }
-
-    document.addEventListener('click', function(e) {
-      const popover = document.getElementById('inlinePopover');
-      if (popover && !popover.classList.contains('hidden')) {
-        if (!popover.contains(e.target)) {
-          hideInlinePopover();
+          `;
         }
       }
     });
@@ -2091,16 +2273,57 @@
     }
 
     function updateByteGaugeUI(student) {
-      const bytes = student.bytes;
       const maxB = appState.maxBytes;
       const maxC = appState.maxChars;
-      const charLen = (student.text || '').length;
-
-      document.getElementById('bottomCategoryLabel').textContent = `${appState.categoryLabel} (최대 ${maxC.toLocaleString()}자)`;
       const statusText = document.getElementById('byteStatusText');
       const charSubText = document.getElementById('charCountSubText');
       const progressBar = document.getElementById('byteProgressBar');
+      const catLabel = document.getElementById('bottomCategoryLabel');
 
+      // Check if viewing a specific subject tab or multi-subject student
+      if (student.subjects && student.subjects.length > 0 && appState.categoryKey === 'setuk_subj') {
+        if (appState.selectedSubjectIdx !== 'all' && student.subjects[appState.selectedSubjectIdx]) {
+          const sub = student.subjects[appState.selectedSubjectIdx];
+          catLabel.textContent = `[${sub.subjectName}] 세특 (최대 ${maxC}자)`;
+          charSubText.textContent = `(과목 본문 ${sub.chars.toLocaleString()}자 / 기준 ${maxC}자)`;
+          const pct = Math.min(100, Math.round((sub.bytes / maxB) * 100));
+          progressBar.style.width = `${pct}%`;
+
+          if (sub.bytes > maxB) {
+            statusText.textContent = `${sub.bytes.toLocaleString()} / ${maxB.toLocaleString()} Byte (+${sub.bytes - maxB}B 초과!)`;
+            statusText.className = 'font-extrabold text-rose-600 dark:text-rose-400';
+            progressBar.className = 'h-full rounded-full bg-rose-600 transition-all duration-300';
+          } else {
+            statusText.textContent = `${sub.bytes.toLocaleString()} / ${maxB.toLocaleString()} Byte (적정)`;
+            statusText.className = 'font-extrabold text-emerald-700 dark:text-emerald-400';
+            progressBar.className = 'h-full rounded-full bg-emerald-600 transition-all duration-300';
+          }
+          return;
+        }
+
+        if (student.subjects.length > 1) {
+          catLabel.textContent = `전 과목 세특 (${student.subjects.length}과목 · 과목당 ${maxC}자)`;
+          charSubText.textContent = `(최대 과목: ${student.maxSubjectName} / 전체 합산 ${student.totalCombinedBytes.toLocaleString()}B)`;
+          const pct = Math.min(100, Math.round((student.bytes / maxB) * 100));
+          progressBar.style.width = `${pct}%`;
+
+          if (student.isByteOver) {
+            statusText.textContent = `최대 ${student.bytes.toLocaleString()} / ${maxB.toLocaleString()} Byte (${student.overByteSubjects.length}개 과목 초과!)`;
+            statusText.className = 'font-extrabold text-rose-600 dark:text-rose-400';
+            progressBar.className = 'h-full rounded-full bg-rose-600 transition-all duration-300';
+          } else {
+            statusText.textContent = `최대 ${student.bytes.toLocaleString()} / ${maxB.toLocaleString()} Byte (전 과목 통과)`;
+            statusText.className = 'font-extrabold text-emerald-700 dark:text-emerald-400';
+            progressBar.className = 'h-full rounded-full bg-emerald-600 transition-all duration-300';
+          }
+          return;
+        }
+      }
+
+      const bytes = student.bytes;
+      const charLen = (student.text || '').length;
+
+      catLabel.textContent = `${appState.categoryLabel} (최대 ${maxC.toLocaleString()}자)`;
       charSubText.textContent = `(현재 글자수: 공백 포함 ${charLen.toLocaleString()}자 / 기준 ${maxC.toLocaleString()}자)`;
       const pct = Math.min(100, Math.round((bytes / maxB) * 100));
       progressBar.style.width = `${pct}%`;
@@ -2199,12 +2422,26 @@
       const student = appState.students.find(s => s.id === appState.selectedStudentId);
       if (!student) return;
 
-      navigator.clipboard.writeText(student.text).then(() => {
+      // If a specific subject tab is selected, copy only that subject's pure body text for direct NEIS paste
+      let textToCopy = student.text;
+      let copyLabel = `${student.number}번 ${maskStudentName(student.rawName)}`;
+
+      if (
+        appState.selectedSubjectIdx !== 'all' &&
+        student.subjects &&
+        student.subjects[appState.selectedSubjectIdx]
+      ) {
+        const sub = student.subjects[appState.selectedSubjectIdx];
+        textToCopy = sub.bodyText;
+        copyLabel = `${student.number}번 ${maskStudentName(student.rawName)} - ${sub.subjectName}`;
+      }
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
         student.reviewed = true;
         student.manuallyReviewed = true;
         renderWorkspaceAll();
         showToast(
-          `[${student.number}번 ${maskStudentName(student.rawName)}] 교정본이 복사되었습니다! (${student.bytes}/${appState.maxBytes} Byte)`,
+          `[${copyLabel}] 교정본이 복사되었습니다! (${calculateNeisBytes(textToCopy)}/${appState.maxBytes} Byte)`,
           'success'
         );
       });
