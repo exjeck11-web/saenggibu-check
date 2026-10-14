@@ -10,9 +10,14 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS for Client-side NEIS Excel/CSV Fast Parsing -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- PDF.js for Client-side NEIS PDF Fast Parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
+    if (window['pdfjsLib']) {
+      window['pdfjsLib'].GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
     tailwind.config = {
       darkMode: 'class',
       theme: {
@@ -136,7 +141,7 @@
 <body class="bg-eyecare-bg dark:bg-darkcare-bg text-slate-800 dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col transition-colors duration-200">
 
   <!-- Hidden Global File Input (Resets value on click so same modified file can be re-uploaded) -->
-  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.txt" class="hidden" onclick="this.value=null" onchange="handleFileSelect(event)" />
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.pdf,.txt" class="hidden" onclick="this.value=null" onchange="handleFileSelect(event)" />
 
   <!-- ==================== 1. TOP UTILITY BAR ==================== -->
   <header class="h-14 shrink-0 bg-eyecare-surface dark:bg-darkcare-surface border-b border-eyecare-border dark:border-darkcare-border px-4 flex items-center justify-between gap-2 z-30">
@@ -259,10 +264,10 @@
         </div>
 
         <p class="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">
-          나이스에서 내려받은 엑셀/텍스트 파일을 여기에 끌어다 놓으세요
+          나이스에서 내려받은 엑셀 / PDF / 텍스트 파일을 여기에 끌어다 놓으세요
         </p>
         <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6">
-          지원 형식: <span class="font-semibold text-slate-700 dark:text-slate-300">.xlsx, .xls, .csv, .txt</span> (상단 결재란·학교명·항목 헤더 행 자동 제외)
+          지원 형식: <span class="font-semibold text-emerald-700 dark:text-emerald-400">.xlsx, .xls, .csv, .pdf, .txt</span> (상단 결재란·학교명·항목 헤더 행 자동 제외)
         </p>
 
         <div class="flex flex-wrap items-center justify-center gap-2.5">
@@ -1316,14 +1321,145 @@
             finishFileLoad(file.name, parsedStudents, startTime);
           } catch (err) {
             console.error(err);
-            showToast('파일 파싱 중 오류가 발생했습니다. 올바른 엑셀(.xlsx, .xls, .csv) 또는 텍스트(.txt) 파일인지 확인해 주세요.', 'warning');
+            showToast('파일 파싱 중 오류가 발생했습니다. 올바른 엑셀(.xlsx, .xls, .csv) 파일인지 확인해 주세요.', 'warning');
           }
         };
         reader.readAsArrayBuffer(file);
         return;
       }
 
-      showToast('지원하지 않는 파일 형식입니다. (.xlsx, .xls, .csv, .txt 파일을 업로드해 주세요)', 'warning');
+      if (ext === 'pdf') {
+        const reader = new FileReader();
+        reader.onload = async function(evt) {
+          try {
+            if (!window['pdfjsLib']) {
+              showToast('PDF 파서 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.', 'warning');
+              return;
+            }
+            const uint8Array = new Uint8Array(evt.target.result);
+            const parsedStudents = await extractStudentsFromNeisPdf(uint8Array);
+            if (parsedStudents.length === 0) {
+              showToast('PDF 파일에서 유효한 텍스트를 추출하지 못했습니다. 스캔된 이미지 PDF가 아닌지 확인해 주세요.', 'warning');
+              return;
+            }
+            finishFileLoad(file.name, parsedStudents, startTime);
+          } catch (err) {
+            console.error(err);
+            showToast('PDF 파일 분석 중 오류가 발생했습니다. 암호가 걸려있거나 손상된 PDF인지 확인해 주세요.', 'warning');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+
+      showToast('지원하지 않는 파일 형식입니다. (.xlsx, .xls, .csv, .pdf, .txt 파일을 업로드해 주세요)', 'warning');
+    }
+
+    async function extractStudentsFromNeisPdf(uint8Array) {
+      const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+      const pdf = await loadingTask.promise;
+      const allLines = [];
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+
+        // Group text items by Y coordinate (tolerance of 4px for same visual line)
+        const lineBuckets = [];
+        textContent.items.forEach(item => {
+          const str = String(item.str || '');
+          if (!str.trim()) return;
+          const x = item.transform[4];
+          const y = item.transform[5];
+
+          let bucket = lineBuckets.find(b => Math.abs(b.y - y) <= 4);
+          if (!bucket) {
+            bucket = { y, items: [] };
+            lineBuckets.push(bucket);
+          }
+          bucket.items.push({ x, str });
+        });
+
+        // Sort lines top-to-bottom (descending Y in PDF coordinate space)
+        lineBuckets.sort((a, b) => b.y - a.y);
+
+        lineBuckets.forEach(bucket => {
+          bucket.items.sort((a, b) => a.x - b.x);
+          const lineText = bucket.items.map(i => i.str.trim()).join(' ').replace(/\s{2,}/g, ' ').trim();
+          if (lineText) {
+            allLines.push(lineText);
+          }
+        });
+      }
+
+      // Filter out typical NEIS PDF page headers, footers, and approval blocks
+      const headerFooterRegex = /^(-\s*\d+\s*-|\d+\s*\/\s*\d+|페이지\s*\d+|학교생활기록부|교과학습발달상황|창의적\s*체험활동|행동특성\s*및\s*종합의견|독서활동상황|세부능력\s*및\s*특기사항|출력일시|담임|부장|교감|교장|결재|학급담임|교과담당|번호\s+성명|반\s+번호\s+성명|학년\s+반\s+번호)/;
+
+      const filteredLines = allLines.filter(line => {
+        if (headerFooterRegex.test(line) && line.length < 45) return false;
+        return true;
+      });
+
+      const students = [];
+      let currentStudent = null;
+
+      // Pattern to detect start of a student row in NEIS PDF exports:
+      // e.g., "1 홍길동 ...", "01 홍길동 ...", "1번 홍길동 ...", "1학년 2반 3번 홍길동 ..."
+      const studentStartRegex = /^(?:(\d{1,2}\s*학년\s*\d{1,2}\s*반|\d{1,2}\s*반)\s+)?(\d{1,4})\s*번?\s+([가-힣*]{2,5})(?:\s+(.*))?$/;
+      const bannedNames = /^(세부능력|특기사항|자율활동|자치활동|동아리활동|진로활동|행동특성|종합의견|독서활동|과목별|개인별|공통국어|공통수학|공통영어|통합사회|통합과학|한국사)$/;
+
+      filteredLines.forEach(line => {
+        const match = line.match(studentStartRegex);
+        if (match && !bannedNames.test(match[3])) {
+          if (currentStudent && currentStudent.text.trim().length > 0) {
+            currentStudent.text = currentStudent.text.trim();
+            currentStudent.originalText = currentStudent.text;
+            students.push(currentStudent);
+          }
+          const classStr = match[1] ? match[1].replace(/\s+/g, ' ') : 'PDF 업로드';
+          const num = parseInt(match[2], 10) || (students.length + 1);
+          const name = match[3];
+          const initialText = (match[4] || '').trim();
+
+          currentStudent = {
+            id: students.length + 1,
+            classInfo: classStr,
+            number: num,
+            rawName: name,
+            text: initialText,
+            originalText: initialText,
+            ignoredKeys: [],
+            manuallyReviewed: false
+          };
+        } else if (currentStudent) {
+          currentStudent.text += (currentStudent.text ? ' ' : '') + line;
+        }
+      });
+
+      if (currentStudent && currentStudent.text.trim().length > 0) {
+        currentStudent.text = currentStudent.text.trim();
+        currentStudent.originalText = currentStudent.text;
+        students.push(currentStudent);
+      }
+
+      // Fallback: if the PDF does not have "[번호] [성명]" columns (e.g., plain text/paragraph PDF)
+      if (students.length === 0 && filteredLines.length > 0) {
+        const combinedText = filteredLines.join(' ').trim();
+        if (combinedText.length > 0) {
+          students.push({
+            id: 1,
+            classInfo: 'PDF 문서',
+            number: 1,
+            rawName: '학생1',
+            text: combinedText,
+            originalText: combinedText,
+            ignoredKeys: [],
+            manuallyReviewed: false
+          });
+        }
+      }
+
+      return students;
     }
 
     function extractStudentsFromNeisRows(rows) {
