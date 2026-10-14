@@ -140,14 +140,14 @@
 </head>
 <body class="bg-eyecare-bg dark:bg-darkcare-bg text-slate-800 dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col transition-colors duration-200">
 
-  <!-- Hidden Global File Input (Resets value on click so same modified file can be re-uploaded) -->
-  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.pdf,.txt" class="hidden" onclick="this.value=null" onchange="handleFileSelect(event)" />
+  <!-- Hidden Global File Input -->
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.pdf,.txt" class="hidden" onchange="handleFileSelect(event)" />
 
   <!-- ==================== 1. TOP UTILITY BAR ==================== -->
   <header class="h-14 shrink-0 bg-eyecare-surface dark:bg-darkcare-surface border-b border-eyecare-border dark:border-darkcare-border px-4 flex items-center justify-between gap-2 z-30">
     <!-- Left: Brand & 2026 Record Category Selector (Based on PDF p.208) -->
     <div class="flex items-center gap-3 min-w-0">
-      <button onclick="resetToHomeConfirm()" class="flex items-center gap-2 text-left group focus:outline-none" title="초기 업로드 화면으로 이동">
+      <button type="button" onclick="resetToHomeConfirm()" class="flex items-center gap-2 text-left group focus:outline-none" title="초기 업로드 화면으로 이동">
         <div class="w-8 h-8 rounded-lg bg-emerald-700 dark:bg-emerald-600 flex items-center justify-center text-white shadow-sm group-hover:bg-emerald-800 transition">
           <i data-lucide="shield-check" class="w-5 h-5"></i>
         </div>
@@ -166,7 +166,7 @@
         <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0"></i>
         <span class="text-slate-500 dark:text-slate-400 hidden md:inline font-medium">영역 기준(p.208):</span>
         <select id="categorySelect" onchange="handleCategoryChange()" class="bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer pr-1">
-          <option value="setuk_subj" data-chars="500" data-bytes="1500" data-name="과목별 세부능력 및 특기사항">교과세특 (500자 / 1,500 Byte)</option>
+          <option value="setuk_subj" data-chars="500" data-bytes="1500" data-name="과목별 세부능력 및 특기사항">교과세특 (과목별 500자 / 1,500 Byte)</option>
           <option value="setuk_ind" data-chars="500" data-bytes="1500" data-name="개인별 세부능력 및 특기사항">개인별세특 (500자 / 1,500 Byte)</option>
           <option value="chang_auto" data-chars="500" data-bytes="1500" data-name="자율·자치활동 특기사항">창체 자율·자치활동 (500자 / 1,500 Byte)</option>
           <option value="chang_club" data-chars="500" data-bytes="1500" data-name="동아리활동 특기사항">창체 동아리활동 (500자 / 1,500 Byte)</option>
@@ -182,7 +182,7 @@
       </div>
 
       <!-- Explicit Re-Verify / Refresh Button in Top Bar (Visible in Workspace) -->
-      <button id="btnTopVerifyRefresh" onclick="triggerFullVerification(true)" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold transition shadow-xs" title="현재 파일 및 텍스트 전체를 2026 기재요령 기준으로 다시 검증(새로고침)합니다">
+      <button type="button" id="btnTopVerifyRefresh" onclick="triggerFullVerification(true)" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold transition shadow-xs" title="현재 파일 및 텍스트 전체를 2026 기재요령 기준으로 다시 검증(새로고침)합니다">
         <i id="topVerifyIcon" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
         <span>검증 새로고침</span>
       </button>
@@ -197,33 +197,33 @@
       </div>
 
       <!-- Cross-Check Modification Report Button -->
-      <button id="btnCrossReport" onclick="openReportModal()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold transition shadow-2xs">
+      <button type="button" id="btnCrossReport" onclick="openReportModal()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold transition shadow-2xs">
         <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
         <span>교차 검토 리포트</span>
         <span id="reportIssueCountBadge" class="px-1.5 py-0.2 rounded-full bg-indigo-600 text-white text-[10px]">0</span>
       </button>
 
       <!-- 2026 Guideline & Max Byte Reference Button -->
-      <button onclick="openGuidelineModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-semibold text-slate-700 dark:text-slate-200 transition" title="2026 학교생활기록부 기재요령(고등학교) 유의사항 및 최대 글자수 표 확인">
+      <button type="button" onclick="openGuidelineModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-semibold text-slate-700 dark:text-slate-200 transition" title="2026 학교생활기록부 기재요령(고등학교) 유의사항 및 최대 글자수 표 확인">
         <i data-lucide="book-open-check" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
         <span class="hidden sm:inline">2026 기재요령·글자수 기준표</span>
       </button>
 
       <!-- Eye-Care Dark Mode Toggle -->
-      <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-600 dark:text-slate-300 transition" title="눈 보호 다크모드 전환">
+      <button type="button" onclick="toggleDarkMode()" id="darkModeBtn" class="p-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-600 dark:text-slate-300 transition" title="눈 보호 다크모드 전환">
         <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
         <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
       </button>
 
       <!-- Zero-Retention Immediate Wipe Button -->
-      <button id="btnWipeData" onclick="wipeAllDataNow()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition shadow-xs" title="메모리에 로드된 모든 데이터를 즉시 파기하고 초기 화면으로 돌아갑니다">
+      <button type="button" id="btnWipeData" onclick="wipeAllDataNow()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition shadow-xs" title="메모리에 로드된 모든 데이터를 즉시 파기하고 초기 화면으로 돌아갑니다">
         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
         <span>작업 종료 (데이터 파기)</span>
       </button>
     </div>
   </header>
 
-  <!-- ==================== 2. CLEAN INITIAL UPLOAD VIEW (NO CLUTTERED SAMPLES) ==================== -->
+  <!-- ==================== 2. CLEAN INITIAL UPLOAD VIEW ==================== -->
   <main id="uploadView" class="flex-1 overflow-y-auto flex items-center justify-center p-4 sm:p-6">
     <div class="max-w-2xl w-full space-y-6">
       <!-- Top Title Banner -->
@@ -236,7 +236,7 @@
           나이스(NEIS) 항목별·과목별 파일을 업로드하세요
         </h1>
         <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
-          업로드 즉시 학생 성명은 자동 마스킹(<code class="px-1 py-0.5 rounded bg-eyecare-muted dark:bg-darkcare-muted text-slate-800 dark:text-slate-200 font-semibold">홍*동</code>) 처리되며, <strong class="text-slate-800 dark:text-slate-200">2026 기재요령 금지어·주의어·명사형 종결어미·영역별 최대 바이트(Byte)</strong>를 검증합니다.
+          업로드 즉시 학생 성명은 자동 마스킹(<code class="px-1 py-0.5 rounded bg-eyecare-muted dark:bg-darkcare-muted text-slate-800 dark:text-slate-200 font-semibold">홍*동</code>) 처리되며, <strong class="text-slate-800 dark:text-slate-200">2026 기재요령 금지어·주의어·명사형 종결어미·과목별 최대 바이트(Byte)</strong>를 검증합니다.
         </p>
       </div>
 
@@ -247,7 +247,7 @@
           <p class="text-xs text-slate-500 dark:text-slate-400">2026 기재요령 [참고자료 8](p.208) 기준: 한글 1자 = 3Byte, 영문·숫자·공백·엔터 = 1Byte</p>
         </div>
         <div id="homeLimitBadge" class="px-3 py-1.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border text-xs font-extrabold text-slate-800 dark:text-slate-100 shrink-0">
-          교과세특 · 최대 500자 (1,500 Byte)
+          교과세특 · 과목별 최대 500자 (1,500 Byte)
         </div>
       </div>
 
@@ -256,7 +256,7 @@
            ondragover="handleDragOver(event)"
            ondragleave="handleDragLeave(event)"
            ondrop="handleFileDrop(event)"
-           onclick="document.getElementById('fileInput').click()"
+           onclick="triggerFileInputClick()"
            class="relative group cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-600 dark:hover:border-emerald-500 bg-eyecare-card dark:bg-darkcare-card p-8 sm:p-10 text-center transition-all duration-200 shadow-xs hover:shadow-md">
 
         <div class="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
@@ -267,16 +267,16 @@
           나이스에서 내려받은 엑셀 / PDF / 텍스트 파일을 여기에 끌어다 놓으세요
         </p>
         <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6">
-          지원 형식: <span class="font-semibold text-emerald-700 dark:text-emerald-400">.xlsx, .xls, .csv, .pdf, .txt</span> (상단 결재란·학교명·항목 헤더 행 자동 제외)
+          지원 형식: <span class="font-semibold text-emerald-700 dark:text-emerald-400">.xlsx, .xls, .csv, .pdf, .txt</span> (상단 결재란·학교명·쪽번호·항목 헤더 행 자동 제외)
         </p>
 
         <div class="flex flex-wrap items-center justify-center gap-2.5">
-          <button type="button" onclick="event.stopPropagation(); document.getElementById('fileInput').click();" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-xs transition">
+          <button type="button" onclick="event.stopPropagation(); triggerFileInputClick();" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer">
             <i data-lucide="folder-open" class="w-4 h-4"></i>
             <span>내 PC에서 파일 선택하여 검증</span>
           </button>
 
-          <button type="button" onclick="event.stopPropagation(); startDirectTextEntry();" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition">
+          <button type="button" onclick="event.stopPropagation(); startDirectTextEntry();" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition cursor-pointer">
             <i data-lucide="edit-3" class="w-4 h-4 text-slate-500"></i>
             <span>파일 없이 직접 텍스트 붙여넣어 검증</span>
           </button>
@@ -290,7 +290,7 @@
             <i data-lucide="info" class="w-4 h-4 text-emerald-600"></i>
             2026학년도 학교생활기록부 영역별 최대 입력 용량 요약 (기재요령 p.208)
           </span>
-          <button onclick="openGuidelineModal()" class="text-emerald-700 dark:text-emerald-400 font-bold hover:underline">전체 기준표 보기 →</button>
+          <button type="button" onclick="openGuidelineModal()" class="text-emerald-700 dark:text-emerald-400 font-bold hover:underline">전체 기준표 보기 →</button>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
           <div class="p-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border">
@@ -318,7 +318,7 @@
   <section id="workspaceView" class="hidden flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
 
     <!-- LEFT PANEL: Student List, File Change & Verification Refresh Controls -->
-    <aside class="w-full md:w-[280px] lg:w-[320px] shrink-0 bg-eyecare-surface dark:bg-darkcare-surface border-b md:border-b-0 md:border-r border-eyecare-border dark:border-darkcare-border flex flex-col h-60 md:h-full">
+    <aside class="w-full md:w-[290px] lg:w-[330px] shrink-0 bg-eyecare-surface dark:bg-darkcare-surface border-b md:border-b-0 md:border-r border-eyecare-border dark:border-darkcare-border flex flex-col h-60 md:h-full">
       <!-- File Summary, File Change & Verify Refresh Header -->
       <div class="p-3 border-b border-eyecare-border dark:border-darkcare-border space-y-2.5">
         <div class="flex items-start justify-between gap-2">
@@ -331,13 +331,13 @@
             <p id="lastVerifiedTimeText" class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">최근 검증: 방금 전</p>
           </div>
 
-          <!-- File Change & Add Row Buttons -->
+          <!-- File Change & Verify Refresh Buttons -->
           <div class="flex flex-col gap-1 shrink-0">
-            <button onclick="document.getElementById('fileInput').click()" class="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-[11px] font-bold text-slate-700 dark:text-slate-200 transition shadow-2xs" title="다른 나이스 파일이나 수정된 파일을 다시 불러옵니다">
+            <button type="button" onclick="triggerFileInputClick()" class="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-[11px] font-bold text-slate-700 dark:text-slate-200 transition shadow-2xs cursor-pointer" title="다른 나이스 파일이나 수정된 파일을 다시 불러옵니다">
               <i data-lucide="folder-sync" class="w-3 h-3 text-emerald-600"></i>
               <span>파일 변경</span>
             </button>
-            <button onclick="triggerFullVerification(true)" class="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-[11px] font-bold text-white transition shadow-2xs" title="현재 로드된 모든 학생 데이터를 2026 기재요령 기준으로 다시 검증(새로고침)합니다">
+            <button type="button" onclick="triggerFullVerification(true)" class="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-[11px] font-bold text-white transition shadow-2xs cursor-pointer" title="현재 로드된 모든 학생 데이터를 2026 기재요령 기준으로 다시 검증(새로고침)합니다">
               <i id="sideVerifyIcon" data-lucide="refresh-cw" class="w-3 h-3"></i>
               <span>검증 새로고침</span>
             </button>
@@ -351,7 +351,7 @@
             <span>오류·초과 학생만 보기</span>
             <span id="issueStudentCountBadge" class="px-1.5 py-0.2 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[11px] font-extrabold">0</span>
           </label>
-          <button onclick="toggleNameMasking()" id="maskToggleBtn" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 underline" title="이름 마스킹(홍*동) 표시 토글">
+          <button type="button" onclick="toggleNameMasking()" id="maskToggleBtn" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 underline" title="이름 마스킹(홍*동) 표시 토글">
             마스킹 ON
           </button>
         </div>
@@ -360,9 +360,9 @@
         <div class="flex items-center gap-1.5">
           <div class="relative flex-1">
             <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
-            <input type="text" id="studentSearchInput" oninput="renderStudentList()" placeholder="번호, 이름, 본문 검색..." class="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500" />
+            <input type="text" id="studentSearchInput" oninput="renderStudentList()" placeholder="번호, 이름, 과목명, 본문 검색..." class="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500" />
           </div>
-          <button onclick="addNewEmptyStudent()" class="px-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-700 dark:text-slate-200 shrink-0 transition" title="학생 행 직접 추가">
+          <button type="button" onclick="addNewEmptyStudent()" class="px-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-700 dark:text-slate-200 shrink-0 transition" title="학생 행 직접 추가">
             + 추가
           </button>
         </div>
@@ -400,35 +400,35 @@
         <!-- Verification Refresh, Bulk Style Fix & Restore Controls -->
         <div class="flex items-center gap-1.5 flex-wrap">
           <!-- Re-Verify Current Student Button -->
-          <button onclick="verifyCurrentStudentNow()" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-2xs" title="현재 학생의 본문을 2026 기재요령 및 바이트 기준으로 즉시 재검증합니다">
+          <button type="button" onclick="verifyCurrentStudentNow()" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-2xs" title="현재 학생의 본문을 2026 기재요령 및 바이트 기준으로 즉시 재검증합니다">
             <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
             <span>다시 검증</span>
           </button>
 
           <!-- Bulk Fix Blue (Style/Ending/SpecialChar/Spelling) Button -->
-          <button id="btnBulkFixStyle" onclick="applyAllStyleFixes()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition shadow-2xs">
+          <button type="button" id="btnBulkFixStyle" onclick="applyAllStyleFixes()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition shadow-2xs">
             <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
             <span>파란색(어미·특수문자·맞춤법) 일괄 교정</span>
             <span id="bulkStyleCount" class="px-1.5 py-0.2 rounded-full bg-blue-800 text-white text-[10px]">0</span>
           </button>
 
           <!-- Restore Original Text Button -->
-          <button onclick="restoreOriginalText()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-medium text-slate-600 dark:text-slate-300 transition" title="최초 업로드된 원문으로 되돌리고 무시 목록을 초기화합니다">
+          <button type="button" onclick="restoreOriginalText()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-medium text-slate-600 dark:text-slate-300 transition" title="최초 업로드된 원문으로 되돌리고 무시 목록을 초기화합니다">
             <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
             <span class="hidden sm:inline">원문 복원</span>
           </button>
 
           <!-- Font Size Adjuster -->
           <div class="hidden lg:flex items-center rounded-lg border border-eyecare-border dark:border-darkcare-border bg-eyecare-card dark:bg-darkcare-card p-0.5 text-xs">
-            <button onclick="changeFontSize(-1)" class="px-2 py-1 rounded hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-600 dark:text-slate-300 font-medium" title="글자 작게">가-</button>
-            <button onclick="changeFontSize(0)" class="px-2 py-1 rounded hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-600 dark:text-slate-300 font-medium" title="기본 크기">기본</button>
-            <button onclick="changeFontSize(1)" class="px-2 py-1 rounded hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-600 dark:text-slate-300 font-bold" title="글자 크게">가+</button>
+            <button type="button" onclick="changeFontSize(-1)" class="px-2 py-1 rounded hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-600 dark:text-slate-300 font-medium" title="글자 작게">가-</button>
+            <button type="button" onclick="changeFontSize(0)" class="px-2 py-1 rounded hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-600 dark:text-slate-300 font-medium" title="기본 크기">기본</button>
+            <button type="button" onclick="changeFontSize(1)" class="px-2 py-1 rounded hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-600 dark:text-slate-300 font-bold" title="글자 크게">가+</button>
           </div>
         </div>
       </div>
 
-      <!-- Multi-Subject Filter Tabs Bar (Automatically appears when a student record contains multiple subjects like 공통국어1:, 통합사회1:, etc.) -->
-      <div id="subjectTabsBar" class="hidden px-4 py-2 bg-emerald-50/60 dark:bg-emerald-950/30 border-b border-eyecare-border dark:border-darkcare-border flex items-center gap-1.5 overflow-x-auto shrink-0">
+      <!-- Multi-Subject Filter Tabs Bar (Appears when a student record contains multiple subjects like 공통국어1:, 통합사회1:, etc.) -->
+      <div id="subjectTabsBar" class="hidden px-4 py-2 bg-emerald-50/70 dark:bg-emerald-950/30 border-b border-eyecare-border dark:border-darkcare-border flex items-center gap-1.5 overflow-x-auto shrink-0">
         <!-- Populated dynamically with subject pills -->
       </div>
 
@@ -459,7 +459,7 @@
             </div>
 
             <!-- Toggle between Interactive Highlight Mode and Direct Typing Mode -->
-            <button id="toggleEditModeBtn" onclick="toggleDirectEditMode()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:border-emerald-500 transition">
+            <button type="button" id="toggleEditModeBtn" onclick="toggleDirectEditMode()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:border-emerald-500 transition">
               <i data-lucide="pen-line" class="w-3 h-3"></i>
               <span id="editModeLabel">직접 타이핑 편집</span>
             </button>
@@ -478,7 +478,7 @@
                       placeholder="여기에 검증할 생기부 내용을 입력하거나 붙여넣으세요... 입력 즉시 실시간으로 바이트 및 기재요령을 검증합니다."></textarea>
             <div class="pt-2 flex justify-between items-center text-xs text-slate-500 border-t border-eyecare-border dark:border-darkcare-border">
               <span>💡 내용을 수정한 뒤 우측의 <strong>[검증 완료 및 하이라이트 보기]</strong>를 누르면 밑줄 표시 화면으로 전환됩니다.</span>
-              <button onclick="toggleDirectEditMode()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 flex items-center gap-1">
+              <button type="button" onclick="toggleDirectEditMode()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 flex items-center gap-1">
                 <i data-lucide="check" class="w-3.5 h-3.5"></i>
                 <span>검증 완료 및 하이라이트 보기</span>
               </button>
@@ -513,14 +513,14 @@
         <!-- Left: NEIS Real-time Byte Calculator & Progress Gauge (2026 Guideline p.208) -->
         <div class="flex-1 max-w-xl space-y-1.5">
           <div class="flex items-center justify-between text-xs flex-wrap gap-1">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span id="bottomCategoryLabel" class="font-bold text-slate-700 dark:text-slate-200">교과세특 (최대 500자)</span>
               <span id="byteStatusText" class="font-extrabold text-emerald-700 dark:text-emerald-400">0 / 1,500 Byte</span>
               <span id="charCountSubText" class="text-[11px] text-slate-500 dark:text-slate-400">(공백 포함 0자)</span>
             </div>
 
             <!-- Sentence Compression Button -->
-            <button id="btnAiCompress" onclick="compressStudentText()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/90 hover:bg-amber-200 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700 text-xs font-bold transition shadow-2xs" title="불필요한 수식어와 서술형 어미를 간결한 명사형으로 축약하여 바이트를 줄입니다">
+            <button type="button" id="btnAiCompress" onclick="compressStudentText()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/90 hover:bg-amber-200 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700 text-xs font-bold transition shadow-2xs" title="불필요한 수식어와 서술형 어미를 간결한 명사형으로 축약하여 바이트를 줄입니다">
               <i data-lucide="shrink" class="w-3.5 h-3.5"></i>
               <span>문장 간결화 압축</span>
             </button>
@@ -534,12 +534,12 @@
 
         <!-- Right: Next Student & One-Click Copy to NEIS -->
         <div class="flex items-center gap-2">
-          <button onclick="navigateStudent(1)" class="px-3 py-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-700 dark:text-slate-200 transition flex items-center gap-1" title="다음 학생으로 이동 (Alt + ↓)">
+          <button type="button" onclick="navigateStudent(1)" class="px-3 py-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-700 dark:text-slate-200 transition flex items-center gap-1" title="다음 학생으로 이동 (Alt + ↓)">
             <span>다음 학생</span>
             <i data-lucide="chevron-right" class="w-4 h-4"></i>
           </button>
 
-          <button id="btnCopyCleanText" onclick="copyCleanTextToClipboard()" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white text-sm font-extrabold shadow-md hover:shadow-lg transition cursor-pointer">
+          <button type="button" id="btnCopyCleanText" onclick="copyCleanTextToClipboard()" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white text-sm font-extrabold shadow-md hover:shadow-lg transition cursor-pointer">
             <i data-lucide="copy-check" class="w-4 h-4"></i>
             <span>교정본 복사하기 (Ctrl+C)</span>
           </button>
@@ -562,7 +562,7 @@
             <p class="text-xs text-slate-500 dark:text-slate-400">2026 기재요령 위반 의심 및 바이트 초과 내역만 요약하여 추출합니다.</p>
           </div>
         </div>
-        <button onclick="closeReportModal()" class="p-1.5 rounded-lg hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-500">
+        <button type="button" onclick="closeReportModal()" class="p-1.5 rounded-lg hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-500">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -580,13 +580,13 @@
       </div>
 
       <div class="px-5 py-3.5 bg-eyecare-surface dark:bg-darkcare-surface border-t border-eyecare-border dark:border-darkcare-border flex flex-wrap items-center justify-between gap-2">
-        <button onclick="downloadReportExcel()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-700 dark:text-slate-200 transition">
+        <button type="button" onclick="downloadReportExcel()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-700 dark:text-slate-200 transition">
           <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
           <span>검토 결과 엑셀(.xlsx) 다운로드</span>
         </button>
         <div class="flex items-center gap-2">
-          <button onclick="closeReportModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-eyecare-muted">닫기</button>
-          <button onclick="copyReportToClipboard()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition">
+          <button type="button" onclick="closeReportModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-eyecare-muted">닫기</button>
+          <button type="button" onclick="copyReportToClipboard()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition">
             <i data-lucide="copy" class="w-4 h-4"></i>
             <span>리포트 전체 복사</span>
           </button>
@@ -606,7 +606,7 @@
             <p class="text-[11px] text-slate-500 dark:text-slate-400">근거: 교육부훈령 제555호 (시행 2026. 3. 1.) / 2026 학교생활기록부 기재요령(고등학교) p.18~19, p.30, p.82, p.118, p.208</p>
           </div>
         </div>
-        <button onclick="closeGuidelineModal()" class="p-1.5 rounded-lg hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-500">
+        <button type="button" onclick="closeGuidelineModal()" class="p-1.5 rounded-lg hover:bg-eyecare-muted dark:hover:bg-darkcare-muted text-slate-500">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -723,7 +723,7 @@
       </div>
 
       <div class="px-5 py-3 bg-eyecare-surface dark:bg-darkcare-surface border-t border-eyecare-border dark:border-darkcare-border flex justify-end">
-        <button onclick="closeGuidelineModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 dark:bg-emerald-600 text-white text-xs font-bold">확인</button>
+        <button type="button" onclick="closeGuidelineModal()" class="px-4 py-1.5 rounded-xl bg-slate-800 dark:bg-emerald-600 text-white text-xs font-bold">확인</button>
       </div>
     </div>
   </div>
@@ -966,7 +966,7 @@
     ];
 
     // -------------------------------------------------------------------------
-    // 2. STATE MANAGEMENT (100% IN-MEMORY ZERO-RETENTION, NO SAMPLE CLUTTER)
+    // 2. STATE MANAGEMENT (100% IN-MEMORY ZERO-RETENTION)
     // -------------------------------------------------------------------------
     let appState = {
       fileName: '',
@@ -1000,7 +1000,6 @@
       if (NON_SUBJECT_LABELS.has(clean)) return false;
       if (/^(https?|ftp|file|mailto)$/i.test(clean)) return false;
       if (/^\d+$/.test(clean)) return false;
-      // Must start with Korean, English, or number (like 3D 프린터용 제품 제작)
       return /^[가-힣A-Za-z0-9]/.test(clean);
     }
 
@@ -1008,7 +1007,6 @@
     function parseSubjectsFromStudentText(text) {
       if (!text || !text.trim()) return [];
 
-      // Match subject headers at the start of text or start of a line: e.g. "공통국어1: ", "(1학기) 음악: "
       const headerRegex = /(?:^|\n)[ \t]*((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,22}?)\s*:\s+/g;
       const matches = [];
       let m;
@@ -1031,7 +1029,6 @@
 
       return matches.map((item, idx) => {
         const end = idx + 1 < matches.length ? matches[idx + 1].headerStart : text.length;
-        // Trim trailing newline if next subject follows
         const rawSlice = text.slice(item.bodyStart, end);
         const bodyText = rawSlice.replace(/\n+$/, '');
         const bytes = calculateNeisBytes(bodyText);
@@ -1052,7 +1049,93 @@
 
     // -------------------------------------------------------------------------
     // 3. NAME MASKING & NEIS BYTE CALCULATOR (2026 GUIDELINE p.208)
-// ... existing code ... -->
+    // -------------------------------------------------------------------------
+    function maskStudentName(name) {
+      if (!name) return '학*생';
+      const clean = String(name).trim();
+      if (!appState.maskNames) return clean;
+      if (clean.length <= 1) return clean;
+      if (clean.length === 2) return clean[0] + '*';
+      return clean[0] + '*'.repeat(clean.length - 2) + clean[clean.length - 1];
+    }
+
+    // 2026 Guideline [참고자료 8] (p.208):
+    // 한글 1자 = 3Byte, 영문·숫자·공백 1자 = 1Byte, 엔터(Enter) = 1Byte
+    function calculateNeisBytes(str) {
+      if (!str) return 0;
+      const normalized = String(str).replace(/\r\n/g, '\n');
+      let totalBytes = 0;
+      for (let i = 0; i < normalized.length; i++) {
+        const code = normalized.charCodeAt(i);
+        if (code === 10) {
+          totalBytes += 1;
+        } else if (code <= 0x007F) {
+          totalBytes += 1;
+        } else {
+          totalBytes += 3;
+        }
+      }
+      return totalBytes;
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. REAL-TIME DETECTION ENGINE (2026 NEIS GUIDELINE)
+    // -------------------------------------------------------------------------
+    function analyzeStudentText(text, ignoredKeys = []) {
+      if (!text || !text.trim()) return [];
+      const detected = [];
+
+      GUIDELINE_RULES.forEach(rule => {
+        const flags = rule.regex.flags.includes('g') ? rule.regex.flags : rule.regex.flags + 'g';
+        const rx = new RegExp(rule.regex.source, flags);
+        let match;
+        while ((match = rx.exec(text)) !== null) {
+          const matchedStr = match[0];
+          const startIdx = match.index;
+          const endIdx = startIdx + matchedStr.length;
+          const issueKey = `${rule.id}_${startIdx}_${matchedStr}`;
+
+          if (ignoredKeys.includes(issueKey)) continue;
+
+          let customReplacements = [...rule.replacements];
+          if (rule.id === 'style_ending_ham') {
+            const stem = matchedStr.replace(/(했습니다\.|하였습니다\.|하였다\.)$/, '함.');
+            customReplacements = [stem];
+          } else if (rule.id === 'style_ending_boim') {
+            let stem = matchedStr
+              .replace(/(보여주었습니다\.|보여주었다\.|보였습니다\.)$/, '보임.')
+              .replace(/(기대됩니다\.|기대된다\.|사료됩니다\.|생각됩니다\.)$/, '기대됨.')
+              .replace(/(도왔습니다\.|도왔다\.)$/, '도움.')
+              .replace(/(이끌어냈습니다\.|이끌어냈다\.)$/, '이끌어냄.');
+            customReplacements = [stem];
+          }
+
+          detected.push({
+            key: issueKey,
+            ruleId: rule.id,
+            type: rule.type,
+            label: rule.label,
+            matchedText: matchedStr,
+            start: startIdx,
+            end: endIdx,
+            reason: rule.reason,
+            basis: rule.basis,
+            replacements: customReplacements,
+            canDelete: rule.canDelete
+          });
+        }
+      });
+
+      detected.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+      const nonOverlapping = [];
+      let lastEnd = -1;
+      for (const item of detected) {
+        if (item.start >= lastEnd) {
+          nonOverlapping.push(item);
+          lastEnd = item.end;
+        }
+      }
+
       return nonOverlapping;
     }
 
@@ -1062,10 +1145,9 @@
       student.subjects = parseSubjectsFromStudentText(student.text);
 
       if (student.subjects.length > 0 && appState.categoryKey === 'setuk_subj') {
-        // When the record has "과목명: 본문" structure (single or multi-subject), evaluate NEIS byte limits per subject body!
         student.totalCombinedBytes = calculateNeisBytes(student.text);
         const maxSubj = student.subjects.reduce((prev, curr) => (curr.bytes > prev.bytes ? curr : prev), student.subjects[0]);
-        student.bytes = maxSubj.bytes; // Representative byte count (highest subject)
+        student.bytes = maxSubj.bytes;
         student.maxSubjectName = maxSubj.subjectName;
         student.overByteSubjects = student.subjects.filter(sub => sub.bytes > appState.maxBytes);
         student.isByteOver = student.overByteSubjects.length > 0;
@@ -1091,7 +1173,262 @@
     }
 
     function updateVerificationTimestamp() {
-// ... existing code ... -->
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      appState.lastVerifiedTime = `${hh}:${mm}:${ss}`;
+      const el = document.getElementById('lastVerifiedTimeText');
+      if (el) {
+        el.textContent = `최근 검증: ${appState.lastVerifiedTime}`;
+      }
+    }
+
+    function reAnalyzeAllStudents(resetIgnored = false) {
+      appState.students.forEach(s => {
+        if (resetIgnored) {
+          s.ignoredKeys = [];
+        }
+        enrichStudentRecord(s);
+      });
+      updateVerificationTimestamp();
+    }
+
+    function triggerFullVerification(showNotification = true) {
+      if (appState.directEditMode) {
+        const student = appState.students.find(s => s.id === appState.selectedStudentId);
+        if (student) {
+          student.text = document.getElementById('rawEditorTextarea').value;
+        }
+        appState.directEditMode = false;
+        document.getElementById('directTextareaContainer').classList.add('hidden');
+        document.getElementById('highlightEditorContainer').classList.remove('hidden');
+        document.getElementById('editModeLabel').textContent = '직접 타이핑 편집';
+      }
+
+      ['topVerifyIcon', 'sideVerifyIcon'].forEach(iconId => {
+        const iconEl = document.getElementById(iconId);
+        if (iconEl) {
+          iconEl.classList.remove('animate-spin-once');
+          void iconEl.offsetWidth;
+          iconEl.classList.add('animate-spin-once');
+        }
+      });
+
+      reAnalyzeAllStudents(true);
+      hideInlinePopover();
+      renderWorkspaceAll();
+
+      if (showNotification) {
+        const issueStudents = appState.students.filter(s => s.hasAnyIssue).length;
+        showToast(
+          `🔄 전체 ${appState.students.length}명 재검증 완료! (점검 필요: ${issueStudents}명 · 기준: ${appState.categoryLabel} ${appState.maxBytes.toLocaleString()}B)`,
+          issueStudents > 0 ? 'warning' : 'success'
+        );
+      }
+    }
+
+    function verifyCurrentStudentNow() {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+
+      if (appState.directEditMode) {
+        student.text = document.getElementById('rawEditorTextarea').value;
+        appState.directEditMode = false;
+        document.getElementById('directTextareaContainer').classList.add('hidden');
+        document.getElementById('highlightEditorContainer').classList.remove('hidden');
+        document.getElementById('editModeLabel').textContent = '직접 타이핑 편집';
+      }
+
+      student.ignoredKeys = [];
+      enrichStudentRecord(student);
+      updateVerificationTimestamp();
+      renderWorkspaceAll();
+
+      const totalIssues = student.issues.length + (student.isByteOver ? 1 : 0);
+      showToast(
+        `[${student.number}번 ${maskStudentName(student.rawName)}] 재검증 완료: 검출 항목 ${totalIssues}건 (${student.bytes}/${appState.maxBytes} Byte)`,
+        totalIssues > 0 ? 'warning' : 'success'
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. FILE UPLOAD & NEIS EXCEL/PDF PARSING WORKFLOW
+    // -------------------------------------------------------------------------
+    function triggerFileInputClick() {
+      const fileInput = document.getElementById('fileInput');
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+      }
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('dropZone').classList.add('border-emerald-600', 'bg-emerald-50/40', 'dark:bg-emerald-950/30');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('dropZone').classList.remove('border-emerald-600', 'bg-emerald-50/40', 'dark:bg-emerald-950/30');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleDragLeave(e);
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processUploadedFile(e.dataTransfer.files[0]);
+      }
+    }
+
+    function handleFileSelect(e) {
+      if (e.target && e.target.files && e.target.files.length > 0) {
+        const selectedFile = e.target.files[0];
+        processUploadedFile(selectedFile);
+      }
+    }
+
+    function startDirectTextEntry() {
+      appState.fileName = '직접 입력 검증';
+      appState.students = [
+        {
+          id: 1,
+          classInfo: '직접입력',
+          number: 1,
+          rawName: '학생1',
+          text: '',
+          originalText: '',
+          ignoredKeys: [],
+          manuallyReviewed: false
+        }
+      ];
+      appState.selectedSubjectIdx = 'all';
+      reAnalyzeAllStudents(true);
+      appState.selectedStudentId = 1;
+
+      enterWorkspaceView();
+      if (!appState.directEditMode) {
+        toggleDirectEditMode();
+      }
+      showToast('검증할 생기부 텍스트를 붙여넣은 후 [다시 검증] 또는 [검증 완료 및 하이라이트 보기]를 눌러주세요.', 'info');
+    }
+
+    function addNewEmptyStudent() {
+      const nextNum = appState.students.length + 1;
+      const newStudent = {
+        id: Date.now(),
+        classInfo: '추가입력',
+        number: nextNum,
+        rawName: `학생${nextNum}`,
+        text: '',
+        originalText: '',
+        ignoredKeys: [],
+        manuallyReviewed: false
+      };
+      enrichStudentRecord(newStudent);
+      appState.students.push(newStudent);
+      appState.selectedStudentId = newStudent.id;
+      appState.selectedSubjectIdx = 'all';
+      renderWorkspaceAll();
+      if (!appState.directEditMode) {
+        toggleDirectEditMode();
+      }
+    }
+
+    function processUploadedFile(file) {
+      if (!file) return;
+      const startTime = performance.now();
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (ext === 'txt') {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const content = String(evt.target.result || '').replace(/\r\n/g, '\n');
+          const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+          if (lines.length === 0) {
+            showToast('파일에 텍스트 내용이 없습니다. 직접 입력 모드로 전환합니다.', 'warning');
+            startDirectTextEntry();
+            return;
+          }
+          const parsedStudents = lines.map((line, idx) => ({
+            id: idx + 1,
+            classInfo: '단위 파일',
+            number: idx + 1,
+            rawName: `학생${idx + 1}`,
+            text: normalizeSubjectLineBreaks(line),
+            originalText: normalizeSubjectLineBreaks(line),
+            ignoredKeys: [],
+            manuallyReviewed: false
+          }));
+          finishFileLoad(file.name, parsedStudents, startTime);
+        };
+        reader.readAsText(file, 'utf-8');
+        return;
+      }
+
+      if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            if (typeof XLSX === 'undefined') {
+              showToast('엑셀 파서 라이브러리를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.', 'warning');
+              return;
+            }
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            let parsedStudents = [];
+
+            // Search across sheets in case data is spread or on the first non-empty sheet
+            for (const sheetName of workbook.SheetNames) {
+              const sheet = workbook.Sheets[sheetName];
+              const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+              const extracted = extractStudentsFromNeisRows(rows);
+              if (extracted.length > 0) {
+                parsedStudents = parsedStudents.concat(extracted);
+              }
+            }
+
+            if (parsedStudents.length === 0) {
+              showToast('엑셀 파일에서 유효한 생기부 문장 행을 찾지 못했습니다. 열 구성을 확인해 주세요.', 'warning');
+              return;
+            }
+            finishFileLoad(file.name, parsedStudents, startTime);
+          } catch (err) {
+            console.error(err);
+            showToast('엑셀 파일 파싱 중 오류가 발생했습니다. 올바른 .xlsx, .xls, .csv 파일인지 확인해 주세요.', 'warning');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+
+      if (ext === 'pdf') {
+        const reader = new FileReader();
+        reader.onload = async function(evt) {
+          try {
+            if (!window['pdfjsLib']) {
+              showToast('PDF 파서 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.', 'warning');
+              return;
+            }
+            const uint8Array = new Uint8Array(evt.target.result);
+            const parsedStudents = await extractStudentsFromNeisPdf(uint8Array);
+            if (parsedStudents.length === 0) {
+              showToast('PDF 파일에서 유효한 텍스트를 추출하지 못했습니다. 스캔된 이미지 PDF가 아닌지 확인해 주세요.', 'warning');
+              return;
+            }
+            finishFileLoad(file.name, parsedStudents, startTime);
+          } catch (err) {
+            console.error(err);
+            showToast('PDF 파일 분석 중 오류가 발생했습니다. 암호가 걸려있거나 손상된 PDF인지 확인해 주세요.', 'warning');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+
       showToast('지원하지 않는 파일 형식입니다. (.xlsx, .xls, .csv, .pdf, .txt 파일을 업로드해 주세요)', 'warning');
     }
 
@@ -1104,7 +1441,7 @@
       const trimmedNext = nextText.trimStart();
 
       // Check if nextText starts with a new subject header (e.g., "통합사회1:", "공통수학1:", "(2학기)")
-      const startsWithSubject = /^(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ\s]{2,18}\s*:\s+/.test(trimmedNext);
+      const startsWithSubject = /^(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,20}\s*:\s+/.test(trimmedNext);
       const endsWithSentencePunct = /[.!?]$/.test(trimmedPrev);
 
       if (startsWithSubject || endsWithSentencePunct) {
@@ -1118,10 +1455,11 @@
       return `${trimmedPrev}${trimmedNext}`;
     }
 
-    // Helper: Normalize multi-subject inline text so each "과목명: " after a period starts on a new line for clean readability
+    // Helper: Normalize multi-subject inline text so each "과목명: " after a period starts on a new line
     function normalizeSubjectLineBreaks(text) {
       if (!text) return '';
-      return text.replace(/([.!?])[ \t]+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ]{2,16}\s*:\s+)/g, (full, punct, subjHeader) => {
+      const clean = String(text).replace(/\r\n/g, '\n');
+      return clean.replace(/([.!?])[ \t]+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()]{2,18}\s*:\s+)/g, (full, punct, subjHeader) => {
         const titleCandidate = subjHeader.replace(/:\s*$/, '').trim();
         if (isValidSubjectTitle(titleCandidate)) {
           return `${punct}\n${subjHeader}`;
@@ -1130,15 +1468,18 @@
       });
     }
 
-    // Helper: Detect if a row or line is NEIS metadata, date, user info, school footer, class banner, or table header
+    // Helper: Classify a row from NEIS Excel/PDF export so headers, footers, dates, user info, and school names are never mistaken for students
     function classifyNeisRow(rawCells) {
       const cells = rawCells
-        .map((c, idx) => ({ colIdx: idx, raw: String(c ?? ''), text: String(c ?? '').trim() }))
+        .map((c, idx) => {
+          const rawStr = String(c ?? '').replace(/\r\n/g, '\n');
+          return { colIdx: idx, raw: rawStr, text: rawStr.trim() };
+        })
         .filter(c => c.text.length > 0);
 
       if (cells.length === 0) return { type: 'empty' };
 
-      const joined = cells.map(c => c.text).join(' ');
+      const joined = cells.map(c => c.text).join(' ').replace(/\s+/g, ' ').trim();
       const noSpaceJoined = joined.replace(/\s+/g, '');
 
       // 1) Date / Print timestamp row (e.g., "2026.10.14.", "2026-10-14", "출력일시 : 2026.10.14")
@@ -1147,13 +1488,13 @@
       }
 
       // 2) NEIS User / Teacher / Approval row (e.g., "사용자명 : 진한결", "담임 : ...", "결재")
-      if (/^(사용자명|출력자|작성자|담임교사|학급담임|교과담당|담당교사)\s*[:：]/.test(joined) && joined.length < 40) {
+      if (/^(사용자명|출력자|작성자|담임교사|학급담임|교과담당|담당교사)\s*[:：]/.test(joined) && joined.length < 50) {
         return { type: 'metadata' };
       }
 
       // 3) Class / Grade Banner row (e.g., "1학년 2반", "제 1학년 2반", "전기과 2학년 1반")
       if (cells.length <= 3 && /^(?:[가-힣]+\s+)?제?\s*\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(joined)) {
-        return { type: 'class_banner', classInfo: joined.replace(/\s+/g, ' ').trim() };
+        return { type: 'class_banner', classInfo: joined };
       }
 
       // 4) School Name & Page Number Footer/Header row (e.g., "서전고등학교" + "1 / 32" or "32")
@@ -1173,7 +1514,7 @@
         '번호', '성명', '이름', '학년', '반', '학번', '학기', '교과', '과목', '과목명', '학점', '단위수',
         '세부능력및특기사항', '과목별세부능력및특기사항', '개인별세부능력및특기사항', '특기사항',
         '창의적체험활동상황', '행동특성및종합의견', '독서활동상황', '출결상황', '수상경력',
-        '영역', '시간', '이수시간', '비고', '결재', '담임', '부장', '교감', '교장', '학교생활기록부'
+        '영역', '시간', '이수시간', '비고', '결재', '담임', '부장', '교감', '교장', '학교생활기록부', '교과학습발달상황'
       ]);
 
       const allCellsAreHeaders = cells.every(c => {
@@ -1181,20 +1522,8 @@
         return headerKeywords.has(norm);
       });
 
-      if (allCellsAreHeaders) {
-        const colMap = { numCol: null, nameCol: null, gradeCol: null };
-        cells.forEach(c => {
-          const norm = c.text.replace(/\s+/g, '');
-          if (norm === '번호' && colMap.numCol === null) colMap.numCol = c.colIdx;
-          if ((norm === '성명' || norm === '이름') && colMap.nameCol === null) colMap.nameCol = c.colIdx;
-          if (norm === '학년' && colMap.gradeCol === null) colMap.gradeCol = c.colIdx;
-        });
-        return { type: 'table_header', colMap };
-      }
-
-      // Also skip single-cell title rows like "세부능력 및 특기사항", "학교생활기록부", "교과학습발달상황"
-      if (cells.length <= 2 && headerKeywords.has(noSpaceJoined)) {
-        return { type: 'table_header', colMap: null };
+      if (allCellsAreHeaders || headerKeywords.has(noSpaceJoined)) {
+        return { type: 'table_header' };
       }
 
       return { type: 'data', cells };
@@ -1251,7 +1580,12 @@
         if (!Array.isArray(rawRow)) continue;
 
         const classification = classifyNeisRow(rawRow);
-        if (classification.type === 'empty' || classification.type === 'metadata' || classification.type === 'page_number' || classification.type === 'table_header') {
+        if (
+          classification.type === 'empty' ||
+          classification.type === 'metadata' ||
+          classification.type === 'page_number' ||
+          classification.type === 'table_header'
+        ) {
           continue;
         }
         if (classification.type === 'class_banner') {
@@ -1275,7 +1609,6 @@
 
         if (!longestCellObj || longestCellObj.text.length < 4) continue;
 
-        // Check if other cells to the left of longestCellObj contain [번호], [성명], [학년/반]
         let detectedName = '';
         let nameColIdx = -1;
         let rowClassInfo = '';
@@ -1303,18 +1636,18 @@
         }
 
         // 2) Find student number (번호):
-        // CRITICAL: In NEIS tables ([번 호] | [성 명] | [학 년] | [세부능력 및 특기사항]),
-        // the student number is ALWAYS to the LEFT of the student name (colIdx < nameColIdx).
+        // In NEIS tables ([번 호] | [성 명] | [학 년] | [세부능력 및 특기사항]),
+        // the student number is to the LEFT of the student name (colIdx < nameColIdx).
         // The number to the RIGHT of the student name is 학년 (Grade 1, 2, 3), which must NOT overwrite 번호!
         let detectedNum = null;
         for (const cellObj of cells) {
           if (cellObj.colIdx === longestCellObj.colIdx) continue;
-          if (nameColIdx !== -1 && cellObj.colIdx >= nameColIdx) continue; // Ignore 학년 column to the right of 성명
+          if (nameColIdx !== -1 && cellObj.colIdx >= nameColIdx) continue;
 
           const numMatch = cellObj.text.match(/^(\d{1,3})\s*번?$/);
           if (numMatch) {
             detectedNum = parseInt(numMatch[1], 10);
-            break; // Take the first number to the left of the name (번호)
+            break;
           }
         }
 
@@ -1336,7 +1669,7 @@
           currentClassInfo = rowClassInfo;
         }
 
-        // 3) Check if this row is a page-break / multi-row continuation of the previous student!
+        // 3) Check if this row is a page-break / multi-row continuation of the previous student
         const prevStudent = result.length > 0 ? result[result.length - 1] : null;
 
         // Case A: Same student name (and same number or blank number) repeated after a page break
@@ -1354,7 +1687,7 @@
           continue;
         }
 
-        // Case B: Continuation row with NO student name and NO student number (only text cell continues on next row)
+        // Case B: Continuation row with NO student name and NO student number
         if (prevStudent && !detectedName && detectedNum === null) {
           prevStudent.text = normalizeSubjectLineBreaks(
             mergeContinuationText(prevStudent.text, mainText, prevStudent._lastRawEndedWithSpace)
@@ -1364,7 +1697,7 @@
           continue;
         }
 
-        // Otherwise, create a new student entry
+        // Create a new student entry
         const finalNumber = detectedNum !== null ? detectedNum : (result.length + 1);
         const finalName = detectedName || `학생${result.length + 1}`;
         const normalizedText = normalizeSubjectLineBreaks(mainText);
@@ -1405,372 +1738,6 @@
       enterWorkspaceView();
       showToast(
         `📂 '${fileName}' (학생 ${appState.students.length}명) 검증 완료! [점검 필요: ${issueCount}명 · ${elapsedMs}ms 소요]`,
-        issueCount > 0 ? 'warning' : 'success'
-      );
-    }
-
-    function verifyCurrentStudentNow() {
-      const student = appState.students.find(s => s.id === appState.selectedStudentId);
-      if (!student) return;
-
-      if (appState.directEditMode) {
-        student.text = document.getElementById('rawEditorTextarea').value;
-        appState.directEditMode = false;
-        document.getElementById('directTextareaContainer').classList.add('hidden');
-        document.getElementById('highlightEditorContainer').classList.remove('hidden');
-        document.getElementById('editModeLabel').textContent = '직접 타이핑 편집';
-      }
-
-      student.ignoredKeys = [];
-      enrichStudentRecord(student);
-      updateVerificationTimestamp();
-      renderWorkspaceAll();
-
-      const totalIssues = student.issues.length + (student.isByteOver ? 1 : 0);
-      showToast(
-        `[${student.number}번 ${maskStudentName(student.rawName)}] 재검증 완료: 검출 항목 ${totalIssues}건 (${student.bytes}/${appState.maxBytes} Byte)`,
-        totalIssues > 0 ? 'warning' : 'success'
-      );
-    }
-
-    // -------------------------------------------------------------------------
-    // 5. FILE UPLOAD & DIRECT ENTRY WORKFLOW (NO PRESET SAMPLES)
-    // -------------------------------------------------------------------------
-    function handleDragOver(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      document.getElementById('dropZone').classList.add('border-emerald-600', 'bg-emerald-50/40', 'dark:bg-emerald-950/30');
-    }
-
-    function handleDragLeave(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      document.getElementById('dropZone').classList.remove('border-emerald-600', 'bg-emerald-50/40', 'dark:bg-emerald-950/30');
-    }
-
-    function handleFileDrop(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleDragLeave(e);
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        processUploadedFile(e.dataTransfer.files[0]);
-      }
-    }
-
-    function handleFileSelect(e) {
-      if (e.target.files && e.target.files.length > 0) {
-        processUploadedFile(e.target.files[0]);
-      }
-    }
-
-    function startDirectTextEntry() {
-      appState.fileName = '직접 입력 검증';
-      appState.students = [
-        {
-          id: 1,
-          classInfo: '직접입력',
-          number: 1,
-          rawName: '학생1',
-          text: '',
-          originalText: '',
-          ignoredKeys: [],
-          manuallyReviewed: false
-        }
-      ];
-      reAnalyzeAllStudents(true);
-      appState.selectedStudentId = 1;
-
-      enterWorkspaceView();
-      // Open in direct typing mode immediately so the teacher can paste text right away
-      if (!appState.directEditMode) {
-        toggleDirectEditMode();
-      }
-      showToast('검증할 생기부 텍스트를 붙여넣은 후 [다시 검증] 또는 [검증 완료 및 하이라이트 보기]를 눌러주세요.', 'info');
-    }
-
-    function addNewEmptyStudent() {
-      const nextNum = appState.students.length + 1;
-      const newStudent = {
-        id: Date.now(),
-        classInfo: '추가입력',
-        number: nextNum,
-        rawName: `학생${nextNum}`,
-        text: '',
-        originalText: '',
-        ignoredKeys: [],
-        manuallyReviewed: false
-      };
-      enrichStudentRecord(newStudent);
-      appState.students.push(newStudent);
-      appState.selectedStudentId = newStudent.id;
-      renderWorkspaceAll();
-      if (!appState.directEditMode) {
-        toggleDirectEditMode();
-      }
-    }
-
-    function processUploadedFile(file) {
-      const startTime = performance.now();
-      const ext = file.name.split('.').pop().toLowerCase();
-
-      if (ext === 'txt') {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          const content = evt.target.result || '';
-          const lines = content.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-          if (lines.length === 0) {
-            showToast('파일에 텍스트 내용이 없습니다. 직접 입력 모드로 전환합니다.', 'warning');
-            startDirectTextEntry();
-            return;
-          }
-          const parsedStudents = lines.map((line, idx) => ({
-            id: idx + 1,
-            classInfo: '단위 파일',
-            number: idx + 1,
-            rawName: `학생${idx + 1}`,
-            text: line,
-            originalText: line,
-            ignoredKeys: [],
-            manuallyReviewed: false
-          }));
-          finishFileLoad(file.name, parsedStudents, startTime);
-        };
-        reader.readAsText(file, 'utf-8');
-        return;
-      }
-
-      if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          try {
-            const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
-
-            const parsedStudents = extractStudentsFromNeisRows(rows);
-            if (parsedStudents.length === 0) {
-              showToast('엑셀 파일에서 유효한 생기부 문장 행을 찾지 못했습니다. 열 구성을 확인해 주세요.', 'warning');
-              return;
-            }
-            finishFileLoad(file.name, parsedStudents, startTime);
-          } catch (err) {
-            console.error(err);
-            showToast('파일 파싱 중 오류가 발생했습니다. 올바른 엑셀(.xlsx, .xls, .csv) 파일인지 확인해 주세요.', 'warning');
-          }
-        };
-        reader.readAsArrayBuffer(file);
-        return;
-      }
-
-      if (ext === 'pdf') {
-        const reader = new FileReader();
-        reader.onload = async function(evt) {
-          try {
-            if (!window['pdfjsLib']) {
-              showToast('PDF 파서 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.', 'warning');
-              return;
-            }
-            const uint8Array = new Uint8Array(evt.target.result);
-            const parsedStudents = await extractStudentsFromNeisPdf(uint8Array);
-            if (parsedStudents.length === 0) {
-              showToast('PDF 파일에서 유효한 텍스트를 추출하지 못했습니다. 스캔된 이미지 PDF가 아닌지 확인해 주세요.', 'warning');
-              return;
-            }
-            finishFileLoad(file.name, parsedStudents, startTime);
-          } catch (err) {
-            console.error(err);
-            showToast('PDF 파일 분석 중 오류가 발생했습니다. 암호가 걸려있거나 손상된 PDF인지 확인해 주세요.', 'warning');
-          }
-        };
-        reader.readAsArrayBuffer(file);
-        return;
-      }
-
-      showToast('지원하지 않는 파일 형식입니다. (.xlsx, .xls, .csv, .pdf, .txt 파일을 업로드해 주세요)', 'warning');
-    }
-
-    async function extractStudentsFromNeisPdf(uint8Array) {
-      const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
-      const pdf = await loadingTask.promise;
-      const allLines = [];
-
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-
-        // Group text items by Y coordinate (tolerance of 4px for same visual line)
-        const lineBuckets = [];
-        textContent.items.forEach(item => {
-          const str = String(item.str || '');
-          if (!str.trim()) return;
-          const x = item.transform[4];
-          const y = item.transform[5];
-
-          let bucket = lineBuckets.find(b => Math.abs(b.y - y) <= 4);
-          if (!bucket) {
-            bucket = { y, items: [] };
-            lineBuckets.push(bucket);
-          }
-          bucket.items.push({ x, str });
-        });
-
-        // Sort lines top-to-bottom (descending Y in PDF coordinate space)
-        lineBuckets.sort((a, b) => b.y - a.y);
-
-        lineBuckets.forEach(bucket => {
-          bucket.items.sort((a, b) => a.x - b.x);
-          const lineText = bucket.items.map(i => i.str.trim()).join(' ').replace(/\s{2,}/g, ' ').trim();
-          if (lineText) {
-            allLines.push(lineText);
-          }
-        });
-      }
-
-      // Filter out typical NEIS PDF page headers, footers, and approval blocks
-      const headerFooterRegex = /^(-\s*\d+\s*-|\d+\s*\/\s*\d+|페이지\s*\d+|학교생활기록부|교과학습발달상황|창의적\s*체험활동|행동특성\s*및\s*종합의견|독서활동상황|세부능력\s*및\s*특기사항|출력일시|담임|부장|교감|교장|결재|학급담임|교과담당|번호\s+성명|반\s+번호\s+성명|학년\s+반\s+번호)/;
-
-      const filteredLines = allLines.filter(line => {
-        if (headerFooterRegex.test(line) && line.length < 45) return false;
-        return true;
-      });
-
-      const students = [];
-      let currentStudent = null;
-
-      // Pattern to detect start of a student row in NEIS PDF exports:
-      // e.g., "1 홍길동 ...", "01 홍길동 ...", "1번 홍길동 ...", "1학년 2반 3번 홍길동 ..."
-      const studentStartRegex = /^(?:(\d{1,2}\s*학년\s*\d{1,2}\s*반|\d{1,2}\s*반)\s+)?(\d{1,4})\s*번?\s+([가-힣*]{2,5})(?:\s+(.*))?$/;
-      const bannedNames = /^(세부능력|특기사항|자율활동|자치활동|동아리활동|진로활동|행동특성|종합의견|독서활동|과목별|개인별|공통국어|공통수학|공통영어|통합사회|통합과학|한국사)$/;
-
-      filteredLines.forEach(line => {
-        const match = line.match(studentStartRegex);
-        if (match && !bannedNames.test(match[3])) {
-          if (currentStudent && currentStudent.text.trim().length > 0) {
-            currentStudent.text = currentStudent.text.trim();
-            currentStudent.originalText = currentStudent.text;
-            students.push(currentStudent);
-          }
-          const classStr = match[1] ? match[1].replace(/\s+/g, ' ') : 'PDF 업로드';
-          const num = parseInt(match[2], 10) || (students.length + 1);
-          const name = match[3];
-          const initialText = (match[4] || '').trim();
-
-          currentStudent = {
-            id: students.length + 1,
-            classInfo: classStr,
-            number: num,
-            rawName: name,
-            text: initialText,
-            originalText: initialText,
-            ignoredKeys: [],
-            manuallyReviewed: false
-          };
-        } else if (currentStudent) {
-          currentStudent.text += (currentStudent.text ? ' ' : '') + line;
-        }
-      });
-
-      if (currentStudent && currentStudent.text.trim().length > 0) {
-        currentStudent.text = currentStudent.text.trim();
-        currentStudent.originalText = currentStudent.text;
-        students.push(currentStudent);
-      }
-
-      // Fallback: if the PDF does not have "[번호] [성명]" columns (e.g., plain text/paragraph PDF)
-      if (students.length === 0 && filteredLines.length > 0) {
-        const combinedText = filteredLines.join(' ').trim();
-        if (combinedText.length > 0) {
-          students.push({
-            id: 1,
-            classInfo: 'PDF 문서',
-            number: 1,
-            rawName: '학생1',
-            text: combinedText,
-            originalText: combinedText,
-            ignoredKeys: [],
-            manuallyReviewed: false
-          });
-        }
-      }
-
-      return students;
-    }
-
-    function extractStudentsFromNeisRows(rows) {
-      const result = [];
-      let studentCounter = 1;
-
-      for (let r = 0; r < rows.length; r++) {
-        const rawRow = rows[r];
-        if (!Array.isArray(rawRow)) continue;
-        const row = rawRow.map(cell => String(cell ?? '').trim()).filter(Boolean);
-        if (row.length === 0) continue;
-
-        // Skip typical NEIS header or metadata rows
-        const joined = row.join(' ');
-        if (/^(학년|반|번호|성명|이름|과목|세부능력|학교생활기록부|출력일시|결재|담임|교감|교장)/.test(joined) && joined.length < 50) {
-          continue;
-        }
-
-        // Find longest cell in the row (the student's record text)
-        let longestCell = '';
-        let longestIdx = -1;
-        row.forEach((cell, idx) => {
-          if (cell.length > longestCell.length) {
-            longestCell = cell;
-            longestIdx = idx;
-          }
-        });
-
-        // Accept rows where the main record cell has at least 5 characters
-        if (longestCell.length >= 5) {
-          let detectedName = '';
-          let detectedNum = studentCounter;
-          let detectedClass = '업로드 학급';
-
-          row.forEach((cell, idx) => {
-            if (idx === longestIdx) return;
-            if (!detectedName && /^[가-힣*]{2,5}$/.test(cell) && !/^(세부능력|특기사항|자율활동|동아리활동|진로활동|행동특성|종합의견|독서활동)$/.test(cell)) {
-              detectedName = cell;
-            } else if (/^\d{1,3}$/.test(cell)) {
-              detectedNum = parseInt(cell, 10);
-            } else if (/학년|반/.test(cell) && cell.length <= 15) {
-              detectedClass = cell;
-            }
-          });
-
-          result.push({
-            id: studentCounter,
-            classInfo: detectedClass,
-            number: detectedNum,
-            rawName: detectedName || `학생${studentCounter}`,
-            text: longestCell,
-            originalText: longestCell,
-            ignoredKeys: [],
-            manuallyReviewed: false
-          });
-          studentCounter++;
-        }
-      }
-      return result;
-    }
-
-    function finishFileLoad(fileName, students, startTime) {
-      appState.fileName = fileName;
-      appState.students = students;
-      appState.directEditMode = false;
-      reAnalyzeAllStudents(true);
-
-      const firstIssue = appState.students.find(s => s.hasAnyIssue) || appState.students[0];
-      appState.selectedStudentId = firstIssue ? firstIssue.id : null;
-
-      const elapsedMs = Math.max(10, Math.round(performance.now() - startTime));
-      const issueCount = appState.students.filter(s => s.hasAnyIssue).length;
-
-      enterWorkspaceView();
-      showToast(
-        `📂 '${fileName}' (${appState.students.length}명) 검증 완료! [점검 필요: ${issueCount}명 · ${elapsedMs}ms 소요]`,
         issueCount > 0 ? 'warning' : 'success'
       );
     }
@@ -1862,7 +1829,7 @@
             : `${student.bytes}B`;
 
         return `
-          <button onclick="selectStudent(${student.id})"
+          <button type="button" onclick="selectStudent(${student.id})"
                   class="w-full text-left px-3.5 py-2.5 transition flex items-center justify-between gap-2 ${
                     isSelected
                       ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border-l-4 border-l-emerald-600'
@@ -1874,7 +1841,7 @@
                 <span class="text-sm font-bold ${isSelected ? 'text-emerald-950 dark:text-emerald-200' : 'text-slate-800 dark:text-slate-200'}">${displayName}</span>
                 <span class="text-[10px] font-mono text-slate-400">${byteSubLabel}</span>
               </div>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-[165px]">${escapeHtml(student.text || '(내용 없음)')}</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-[175px]">${escapeHtml(student.text || '(내용 없음)')}</p>
             </div>
             <div class="flex items-center gap-1 shrink-0 flex-wrap justify-end">
               ${badgesHtml}
@@ -1917,7 +1884,7 @@
         <span class="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 shrink-0 mr-1 flex items-center gap-1">
           <i data-lucide="layers" class="w-3.5 h-3.5"></i>과목별 세특 점검(${subjects.length}과목):
         </span>
-        <button onclick="selectSubjectTab('all')"
+        <button type="button" onclick="selectSubjectTab('all')"
                 class="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition ${
                   isAll
                     ? 'bg-emerald-700 text-white shadow-2xs'
@@ -1934,7 +1901,7 @@
           : 'border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800';
 
         html += `
-          <button onclick="selectSubjectTab(${sub.idx})"
+          <button type="button" onclick="selectSubjectTab(${sub.idx})"
                   class="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 border transition flex items-center gap-1 ${
                     isActive
                       ? 'ring-2 ring-emerald-600 bg-emerald-600 text-white border-emerald-600'
@@ -1950,7 +1917,30 @@
     }
 
     function navigateStudent(direction) {
-// ... existing code ... -->
+      const filterOnlyIssues = document.getElementById('filterIssueOnly').checked;
+      const list = appState.students.filter(s => !filterOnlyIssues || s.hasAnyIssue);
+      if (list.length === 0) return;
+
+      const currentIdx = list.findIndex(s => s.id === appState.selectedStudentId);
+      const nextIdx = (currentIdx + direction + list.length) % list.length;
+      selectStudent(list[nextIdx].id);
+    }
+
+    function renderActiveStudentEditor() {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+
+      document.getElementById('activeStudentClassNo').textContent = `${student.classInfo} ${student.number}번`;
+      document.getElementById('activeStudentName').textContent = maskStudentName(student.rawName);
+
+      const badgeBox = document.getElementById('activeStudentBadges');
+      let headerBadges = '';
+      if (student.criticalCount > 0) {
+        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-xs font-bold border border-rose-200 dark:border-rose-800">🔴 기재 금지 ${student.criticalCount}건</span>`;
+      }
+      if (student.warningCount > 0) {
+        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">🟡 기재 주의 ${student.warningCount}건</span>`;
+      }
       if (student.styleCount > 0) {
         headerBadges += `<span class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">🔵 어미/특수문자/맞춤법 ${student.styleCount}건</span>`;
       }
@@ -1992,7 +1982,6 @@
         return `<div class="text-slate-400 dark:text-slate-500 text-sm py-8 text-center">우측 상단의 <strong>[직접 타이핑 편집]</strong> 버튼을 눌러 텍스트를 붙여넣거나 새 파일을 업로드하세요.</div>`;
       }
 
-      // If a specific subject tab is selected, only render that subject's slice while keeping original issue offsets
       let rangeStart = 0;
       let rangeEnd = fullText.length;
       if (
@@ -2100,10 +2089,10 @@
                   <strong>${escapeHtml(sub.subjectName)}</strong> 본문이 <strong>${sub.bytes.toLocaleString()} Byte (${sub.chars}자)</strong>로 과목별 최대 기준인 <strong>${appState.maxChars}자(${appState.maxBytes.toLocaleString()} Byte)</strong>를 초과했습니다.
                 </p>
                 <div class="flex gap-1.5 pt-1">
-                  <button onclick="selectSubjectTab(${sub.idx})" class="flex-1 py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 text-xs font-bold transition">
+                  <button type="button" onclick="selectSubjectTab(${sub.idx})" class="flex-1 py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 text-xs font-bold transition">
                     해당 과목만 보기
                   </button>
-                  <button onclick="compressStudentText()" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-2xs">
+                  <button type="button" onclick="compressStudentText()" class="flex-1 py-1.5 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-2xs">
                     <i data-lucide="shrink" class="w-3.5 h-3.5"></i>
                     <span>문장 간결화 압축</span>
                   </button>
@@ -2129,7 +2118,7 @@
                 현재 <strong>${student.bytes.toLocaleString()} Byte</strong>로 <strong>${appState.categoryLabel}</strong> 최대 기준인 <strong>${appState.maxChars}자(${appState.maxBytes.toLocaleString()} Byte)</strong>를 초과했습니다. (입력 글자 수 초과를 이유로 타 영역에 입력 금지)
               </p>
               <div class="pt-1">
-                <button onclick="compressStudentText()" class="w-full py-1.5 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs">
+                <button type="button" onclick="compressStudentText()" class="w-full py-1.5 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs">
                   <i data-lucide="shrink" class="w-3.5 h-3.5"></i>
                   <span>문장 간결화 압축 실행</span>
                 </button>
@@ -2140,6 +2129,151 @@
             </div>
           `;
         }
+      }
+
+      student.issues.forEach(issue => {
+        const isSelected = appState.activeIssueKey === issue.key;
+        const borderClass =
+          issue.type === 'critical'
+            ? isSelected ? 'border-2 border-rose-500 bg-rose-50/90 dark:bg-rose-950/60' : 'border border-rose-200 dark:border-rose-800/80 bg-eyecare-card dark:bg-darkcare-card'
+            : issue.type === 'warning'
+            ? isSelected ? 'border-2 border-amber-500 bg-amber-50/90 dark:bg-amber-950/60' : 'border border-amber-200 dark:border-amber-800/80 bg-eyecare-card dark:bg-darkcare-card'
+            : isSelected ? 'border-2 border-blue-500 bg-blue-50/90 dark:bg-blue-950/60' : 'border border-blue-200 dark:border-blue-800/80 bg-eyecare-card dark:bg-darkcare-card';
+
+        const typeBadge =
+          issue.type === 'critical'
+            ? `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-[10px] font-extrabold">🔴 기재 금지</span>`
+            : issue.type === 'warning'
+            ? `<span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">🟡 기재 주의</span>`
+            : `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px] font-extrabold">🔵 어미/표기</span>`;
+
+        const actionButtonsHtml = buildIssueActionButtonsHtml(issue);
+
+        cardsHtml += `
+          <div id="card_${escapeHtml(issue.key)}"
+               onclick="focusIssueFromCard('${escapeJsStr(issue.key)}')"
+               class="p-3.5 rounded-xl ${borderClass} space-y-2 transition cursor-pointer shadow-2xs">
+            <div class="flex items-start justify-between gap-2">
+              <div class="space-y-0.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  ${typeBadge}
+                  <span class="text-xs font-extrabold text-slate-900 dark:text-white">${escapeHtml(issue.label)}</span>
+                </div>
+              </div>
+              <button type="button" onclick="event.stopPropagation(); ignoreSingleIssue('${escapeJsStr(issue.key)}')" class="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0" title="문맥상 문제없는 경우 이 경고 무시">
+                무시
+              </button>
+            </div>
+
+            <div class="px-2.5 py-1.5 rounded-lg bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-800 dark:text-slate-200">
+              검출 표현: <span class="underline decoration-2 ${issue.type === 'critical' ? 'decoration-rose-500 text-rose-700 dark:text-rose-300' : issue.type === 'warning' ? 'decoration-amber-500 text-amber-800 dark:text-amber-300' : 'decoration-blue-500 text-blue-700 dark:text-blue-300'}">"${escapeHtml(issue.matchedText)}"</span>
+            </div>
+
+            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">${escapeHtml(issue.reason)}</p>
+
+            <div class="flex flex-wrap gap-1.5 pt-1" onclick="event.stopPropagation()">
+              ${actionButtonsHtml}
+            </div>
+
+            <div class="pt-1.5 border-t border-eyecare-border/80 dark:border-darkcare-border/80 text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+              <span>📖 근거: ${escapeHtml(issue.basis)}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = cardsHtml;
+    }
+
+    function buildIssueActionButtonsHtml(issue) {
+      let btns = '';
+      issue.replacements.forEach(rep => {
+        const label = rep === '' ? '기호 삭제' : `'${rep}'(으)로 변경`;
+        btns += `
+          <button type="button" onclick="applySingleIssueFix('${escapeJsStr(issue.key)}', '${escapeJsStr(rep)}')"
+                  class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition shadow-2xs">
+            ✨ ${escapeHtml(label)}
+          </button>
+        `;
+      });
+
+      if (issue.canDelete) {
+        btns += `
+          <button type="button" onclick="applySingleIssueFix('${escapeJsStr(issue.key)}', '')"
+                  class="px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-950 hover:bg-rose-200 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-[11px] font-bold transition">
+            🗑️ 해당 어구 삭제
+          </button>
+        `;
+      }
+      return btns;
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. INTERACTIVE INLINE POPOVER & CARD SYNC
+    // -------------------------------------------------------------------------
+    function handleInlineTokenClick(event, issueKey) {
+      event.stopPropagation();
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+      const issue = student.issues.find(i => i.key === issueKey);
+      if (!issue) return;
+
+      appState.activeIssueKey = issueKey;
+      renderActiveStudentEditor();
+
+      const popover = document.getElementById('inlinePopover');
+      const editorBox = document.getElementById('highlightEditorContainer').parentElement;
+      const rect = editorBox.getBoundingClientRect();
+
+      let left = event.clientX - rect.left;
+      let top = event.clientY - rect.top + 18;
+      if (left + 330 > rect.width) left = Math.max(12, rect.width - 340);
+      if (top + 210 > rect.height) top = Math.max(44, event.clientY - rect.top - 200);
+
+      popover.style.left = `${left}px`;
+      popover.style.top = `${top}px`;
+
+      popover.innerHTML = `
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-extrabold text-slate-900 dark:text-white">${escapeHtml(issue.label)}</span>
+            <button type="button" onclick="hideInlinePopover()" class="text-slate-400 hover:text-slate-600">✕</button>
+          </div>
+          <p class="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">${escapeHtml(issue.reason)}</p>
+          <div class="flex flex-wrap gap-1.5 pt-1">
+            ${buildIssueActionButtonsHtml(issue)}
+            <button type="button" onclick="ignoreSingleIssue('${escapeJsStr(issue.key)}')" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">
+              무시
+            </button>
+          </div>
+          <div class="pt-1 border-t border-slate-200 dark:border-slate-700 text-[10px] text-slate-500">
+            📖 근거: ${escapeHtml(issue.basis)}
+          </div>
+        </div>
+      `;
+      popover.classList.remove('hidden');
+
+      const cardEl = document.getElementById(`card_${issueKey}`);
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function focusIssueFromCard(issueKey) {
+      appState.activeIssueKey = issueKey;
+      hideInlinePopover();
+      renderActiveStudentEditor();
+    }
+
+    function hideInlinePopover() {
+      const popover = document.getElementById('inlinePopover');
+      if (popover) popover.classList.add('hidden');
+    }
+
+    document.addEventListener('click', function(e) {
+      const popover = document.getElementById('inlinePopover');
+      if (popover && !popover.classList.contains('hidden') && !popover.contains(e.target)) {
+        hideInlinePopover();
       }
     });
 
@@ -2280,7 +2414,6 @@
       const progressBar = document.getElementById('byteProgressBar');
       const catLabel = document.getElementById('bottomCategoryLabel');
 
-      // Check if viewing a specific subject tab or multi-subject student
       if (student.subjects && student.subjects.length > 0 && appState.categoryKey === 'setuk_subj') {
         if (appState.selectedSubjectIdx !== 'all' && student.subjects[appState.selectedSubjectIdx]) {
           const sub = student.subjects[appState.selectedSubjectIdx];
@@ -2418,11 +2551,34 @@
     // -------------------------------------------------------------------------
     // 10. COPY, REPORT & WIPE DATA
     // -------------------------------------------------------------------------
+    function copyTextFallback(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).catch(() => {
+          return execCopyCommand(text);
+        });
+      }
+      return Promise.resolve(execCopyCommand(text));
+    }
+
+    function execCopyCommand(text) {
+      const tempTa = document.createElement('textarea');
+      tempTa.value = text;
+      tempTa.style.position = 'fixed';
+      tempTa.style.left = '-9999px';
+      document.body.appendChild(tempTa);
+      tempTa.select();
+      try {
+        document.execCommand('copy');
+      } catch (e) {
+        console.error(e);
+      }
+      document.body.removeChild(tempTa);
+    }
+
     function copyCleanTextToClipboard() {
       const student = appState.students.find(s => s.id === appState.selectedStudentId);
       if (!student) return;
 
-      // If a specific subject tab is selected, copy only that subject's pure body text for direct NEIS paste
       let textToCopy = student.text;
       let copyLabel = `${student.number}번 ${maskStudentName(student.rawName)}`;
 
@@ -2436,7 +2592,7 @@
         copyLabel = `${student.number}번 ${maskStudentName(student.rawName)} - ${sub.subjectName}`;
       }
 
-      navigator.clipboard.writeText(textToCopy).then(() => {
+      copyTextFallback(textToCopy).then(() => {
         student.reviewed = true;
         student.manuallyReviewed = true;
         renderWorkspaceAll();
@@ -2488,7 +2644,13 @@
         const details = [];
 
         if (s.isByteOver) {
-          details.push(`[🔴용량초과] ${s.bytes}/${appState.maxBytes} Byte (+${s.bytes - appState.maxBytes} Byte 축약 요망, p.208)`);
+          if (s.overByteSubjects && s.overByteSubjects.length > 0) {
+            s.overByteSubjects.forEach(sub => {
+              details.push(`[🔴용량초과:${sub.subjectName}] ${sub.bytes}/${appState.maxBytes} Byte (+${sub.bytes - appState.maxBytes}B 축약 요망, p.208)`);
+            });
+          } else {
+            details.push(`[🔴용량초과] ${s.bytes}/${appState.maxBytes} Byte (+${s.bytes - appState.maxBytes} Byte 축약 요망, p.208)`);
+          }
         }
 
         filteredIssues.forEach(issue => {
@@ -2509,14 +2671,14 @@
 
     function copyReportToClipboard() {
       const val = document.getElementById('reportTextarea').value;
-      navigator.clipboard.writeText(val).then(() => {
+      copyTextFallback(val).then(() => {
         showToast('교차 검토 리포트가 클립보드에 복사되었습니다.', 'success');
       });
     }
 
     function downloadReportExcel() {
       const rows = [
-        ['학급', '번호', '성명(마스킹)', '현재 바이트(Byte)', `기준 바이트(${appState.maxChars}자)`, '점검 결과', '2026 기재요령 검출 내역', '교정 반영 본문']
+        ['학급', '번호', '성명(마스킹)', '대표 바이트(Byte)', `기준 바이트(${appState.maxChars}자)`, '점검 결과', '2026 기재요령 검출 내역', '교정 반영 본문']
       ];
 
       appState.students.forEach(s => {
@@ -2552,9 +2714,12 @@
     function wipeAllDataNow() {
       appState.students = [];
       appState.selectedStudentId = null;
+      appState.selectedSubjectIdx = 'all';
       appState.fileName = '';
       appState.directEditMode = false;
-      sessionStorage.clear();
+      try {
+        sessionStorage.clear();
+      } catch (e) {}
 
       document.getElementById('fileInput').value = '';
       document.getElementById('workspaceView').classList.add('hidden');
