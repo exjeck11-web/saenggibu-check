@@ -140,8 +140,8 @@
 </head>
 <body class="bg-eyecare-bg dark:bg-darkcare-bg text-slate-800 dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col transition-colors duration-200">
 
-  <!-- Hidden Global File Input -->
-  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.pdf,.txt" class="hidden" onchange="handleFileSelect(event)" />
+  <!-- Hidden Global File Input (Excel Only) -->
+  <input type="file" id="fileInput" accept=".xls,.xlsx,.csv" class="hidden" onchange="handleFileSelect(event)" />
 
   <!-- ==================== 1. TOP UTILITY BAR ==================== -->
   <header class="h-14 shrink-0 bg-eyecare-surface dark:bg-darkcare-surface border-b border-eyecare-border dark:border-darkcare-border px-4 flex items-center justify-between gap-2 z-30">
@@ -225,7 +225,7 @@
 
   <!-- ==================== 2. CLEAN INITIAL UPLOAD VIEW ==================== -->
   <main id="uploadView" class="flex-1 overflow-y-auto flex items-center justify-center p-4 sm:p-6">
-    <div class="max-w-2xl w-full space-y-6">
+    <div class="max-w-2xl w-full space-y-5">
       <!-- Top Title Banner -->
       <div class="text-center space-y-2">
         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
@@ -233,11 +233,26 @@
           <span>2026학년도 학교생활기록부 기재요령(고등학교 · 교육부훈령 제555호) 기준</span>
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          나이스(NEIS) 항목별·과목별 파일을 업로드하세요
+          나이스(NEIS) 학생부 항목별 엑셀 파일을 업로드하세요
         </h1>
         <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
           업로드 즉시 학생 성명은 자동 마스킹(<code class="px-1 py-0.5 rounded bg-eyecare-muted dark:bg-darkcare-muted text-slate-800 dark:text-slate-200 font-semibold">홍*동</code>) 처리되며, <strong class="text-slate-800 dark:text-slate-200">2026 기재요령 금지어·주의어·명사형 종결어미·과목별 최대 바이트(Byte)</strong>를 검증합니다.
         </p>
+      </div>
+
+      <!-- NEIS Excel Download Guide Box -->
+      <div class="bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 rounded-2xl p-4 flex items-start gap-3 shadow-2xs">
+        <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+        </div>
+        <div class="space-y-1 text-xs sm:text-sm">
+          <p class="font-extrabold text-emerald-950 dark:text-emerald-200">
+            💡 나이스(NEIS)에서 검토용 엑셀(XLS) 파일 내려받는 방법
+          </p>
+          <p class="text-emerald-900 dark:text-emerald-300 font-semibold leading-relaxed">
+            '학급담임-학생부-학교생활기록부-학생부 항목별 조회'로 들어가 자료 조회, XLS 파일 다운로드합니다.
+          </p>
+        </div>
       </div>
 
       <!-- Step 1: Quick Category Check Bar before Upload -->
@@ -251,7 +266,7 @@
         </div>
       </div>
 
-      <!-- Step 2: Main Drag & Drop Zone -->
+      <!-- Step 2: Main Drag & Drop Zone (Excel Only) -->
       <div id="dropZone"
            ondragover="handleDragOver(event)"
            ondragleave="handleDragLeave(event)"
@@ -264,16 +279,16 @@
         </div>
 
         <p class="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">
-          나이스에서 내려받은 엑셀 / PDF / 텍스트 파일을 여기에 끌어다 놓으세요
+          나이스에서 내려받은 엑셀(XLS / XLSX) 파일을 여기에 끌어다 놓으세요
         </p>
         <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6">
-          지원 형식: <span class="font-semibold text-emerald-700 dark:text-emerald-400">.xlsx, .xls, .csv, .pdf, .txt</span> (상단 결재란·학교명·쪽번호·항목 헤더 행 자동 제외)
+          지원 형식: <span class="font-semibold text-emerald-700 dark:text-emerald-400">.xls, .xlsx, .csv</span> (문서 제목·출력자명·학교명·쪽번호·표 헤더 행 자동 제외)
         </p>
 
         <div class="flex flex-wrap items-center justify-center gap-2.5">
           <button type="button" onclick="event.stopPropagation(); triggerFileInputClick();" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer">
             <i data-lucide="folder-open" class="w-4 h-4"></i>
-            <span>내 PC에서 파일 선택하여 검증</span>
+            <span>내 PC에서 엑셀 파일 선택하여 검증</span>
           </button>
 
           <button type="button" onclick="event.stopPropagation(); startDirectTextEntry();" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition cursor-pointer">
@@ -1343,99 +1358,57 @@
       const startTime = performance.now();
       const ext = file.name.split('.').pop().toLowerCase();
 
-      if (ext === 'txt') {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          const content = String(evt.target.result || '').replace(/\r\n/g, '\n');
-          const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
-          if (lines.length === 0) {
-            showToast('파일에 텍스트 내용이 없습니다. 직접 입력 모드로 전환합니다.', 'warning');
-            startDirectTextEntry();
+      if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') {
+        showToast('엑셀 파일(.xls, .xlsx, .csv)만 업로드할 수 있습니다.', 'warning');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          if (typeof XLSX === 'undefined') {
+            showToast('엑셀 파서 라이브러리를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.', 'warning');
             return;
           }
-          const parsedStudents = lines.map((line, idx) => ({
-            id: idx + 1,
-            classInfo: '단위 파일',
-            number: idx + 1,
-            rawName: `학생${idx + 1}`,
-            text: normalizeSubjectLineBreaks(line),
-            originalText: normalizeSubjectLineBreaks(line),
-            ignoredKeys: [],
-            manuallyReviewed: false
-          }));
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          let parsedStudents = [];
+
+          for (const sheetName of workbook.SheetNames) {
+            const sheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+            const extracted = extractStudentsFromNeisRows(rows);
+            if (extracted.length > 0) {
+              parsedStudents = parsedStudents.concat(extracted);
+            }
+          }
+
+          if (parsedStudents.length === 0) {
+            showToast('엑셀 파일에서 유효한 학생별 생기부 데이터를 찾지 못했습니다. 나이스 XLS 파일인지 확인해 주세요.', 'warning');
+            return;
+          }
           finishFileLoad(file.name, parsedStudents, startTime);
-        };
-        reader.readAsText(file, 'utf-8');
-        return;
-      }
+        } catch (err) {
+          console.error(err);
+          showToast('엑셀 파일 파싱 중 오류가 발생했습니다. 올바른 .xls, .xlsx 파일인지 확인해 주세요.', 'warning');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
 
-      if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          try {
-            if (typeof XLSX === 'undefined') {
-              showToast('엑셀 파서 라이브러리를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.', 'warning');
-              return;
-            }
-            const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            let parsedStudents = [];
-
-            // Search across sheets in case data is spread or on the first non-empty sheet
-            for (const sheetName of workbook.SheetNames) {
-              const sheet = workbook.Sheets[sheetName];
-              const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-              const extracted = extractStudentsFromNeisRows(rows);
-              if (extracted.length > 0) {
-                parsedStudents = parsedStudents.concat(extracted);
-              }
-            }
-
-            if (parsedStudents.length === 0) {
-              showToast('엑셀 파일에서 유효한 생기부 문장 행을 찾지 못했습니다. 열 구성을 확인해 주세요.', 'warning');
-              return;
-            }
-            finishFileLoad(file.name, parsedStudents, startTime);
-          } catch (err) {
-            console.error(err);
-            showToast('엑셀 파일 파싱 중 오류가 발생했습니다. 올바른 .xlsx, .xls, .csv 파일인지 확인해 주세요.', 'warning');
-          }
-        };
-        reader.readAsArrayBuffer(file);
-        return;
-      }
-
-      if (ext === 'pdf') {
-        const reader = new FileReader();
-        reader.onload = async function(evt) {
-          try {
-            if (!window['pdfjsLib']) {
-              showToast('PDF 파서 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.', 'warning');
-              return;
-            }
-            const uint8Array = new Uint8Array(evt.target.result);
-            const parsedStudents = await extractStudentsFromNeisPdf(uint8Array);
-            if (parsedStudents.length === 0) {
-              showToast('PDF 파일에서 유효한 텍스트를 추출하지 못했습니다. 스캔된 이미지 PDF가 아닌지 확인해 주세요.', 'warning');
-              return;
-            }
-            finishFileLoad(file.name, parsedStudents, startTime);
-          } catch (err) {
-            console.error(err);
-            showToast('PDF 파일 분석 중 오류가 발생했습니다. 암호가 걸려있거나 손상된 PDF인지 확인해 주세요.', 'warning');
-          }
-        };
-        reader.readAsArrayBuffer(file);
-        return;
-      }
-
-      showToast('지원하지 않는 파일 형식입니다. (.xlsx, .xls, .csv, .pdf, .txt 파일을 업로드해 주세요)', 'warning');
+    // Helper: Ensure each subject ("과목명: 내용") starts on a clean line break
+    function normalizeSubjectLineBreaks(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/\r\n/g, '\n')
+        .replace(/([.!?])\s+(?=(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()]{2,20}\s*:\s+)/g, '$1\n')
+        .trim();
     }
 
     // Helper: Intelligently merge page-break or multi-row text continuations for the same student
     function mergeContinuationText(prevText, nextText, prevEndedWithSpace = false) {
-      if (!prevText) return nextText;
-      if (!nextText) return prevText;
+      if (!prevText) return nextText || '';
+      if (!nextText) return prevText || '';
 
       const trimmedPrev = prevText.trimEnd();
       const trimmedNext = nextText.trimStart();
@@ -1446,6 +1419,11 @@
 
       if (startsWithSubject || endsWithSentencePunct) {
         return `${trimmedPrev}\n${trimmedNext}`;
+      }
+      if (prevEndedWithSpace) {
+        return `${trimmedPrev} ${trimmedNext}`;
+      }
+      return `${trimmedPrev}${trimmedNext}`;
     }
 
     // Helper: Check if an individual cell is NEIS metadata, report title, column header, school footer, or page number
