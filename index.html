@@ -1607,6 +1607,55 @@
             }
           }
 
+          if (parsedStudents.length === 0) {
+            showToast('파일에서 학생 데이터를 찾지 못했습니다. 직접 입력 모드로 전환합니다.', 'warning');
+            startDirectTextEntry();
+            return;
+          }
+
+          finishFileLoad(file.name, parsedStudents, startTime);
+        } catch (err) {
+          console.error(err);
+          showToast('엑셀 파일 분석 중 오류가 발생했습니다. 나이스 표준 XLS/XLSX 파일인지 확인해 주세요.', 'warning');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Helper: Ensure each new subject header ("과목명: ...") starts on a clean line
+    function normalizeSubjectLineBreaks(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/([.?!])\s+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()]{2,20}\s*:\s+)/g, '$1\n$2')
+        .trim();
+    }
+
+    // Helper: Merge continuation text across NEIS page breaks without artificial mid-word line breaks
+    function mergeContinuationText(prevText, nextText, prevEndedWithSpace = false) {
+      const a = (prevText || '').trim();
+      const b = (nextText || '').trim();
+      if (!a) return b;
+      if (!b) return a;
+
+      // If next chunk starts with a new subject header (e.g. "통합사회1: ...", "(2학기) 음악: ...")
+      if (/^(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,22}\s*:\s+/.test(b)) {
+        return a + '\n' + b;
+      }
+
+      // If previous chunk ended with sentence punctuation (. ? !), join with space
+      if (/[.?!]$/.test(a)) {
+        return a + ' ' + b;
+      }
+
+      // If previous cell had a trailing space before the page break, preserve space
+      if (prevEndedWithSpace) {
+        return a + ' ' + b;
+      }
+
+      // Otherwise it was split mid-word across a page break (e.g. "논" + "리정연하게", "검" + "증을 통해")
+      return a + b;
+    }
+
     // Helper: Check if an individual cell is a 창의적체험활동 Area Label (자율·자치활동, 동아리활동, 진로활동, 봉사활동)
     function detectChangcheAreaLabel(cellText) {
       if (!cellText) return null;
@@ -2430,6 +2479,31 @@
         headerBadges += `<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-300 dark:border-emerald-800">✅ 2026 기재요령 및 용량 기준 통과</span>`;
       }
       badgeBox.innerHTML = headerBadges;
+
+      // Render multi-subject or Changche area filter tabs bar
+      renderSubjectTabsBar(student);
+
+      // Update bulk style fix button state
+      const bulkBtn = document.getElementById('btnBulkFixStyle');
+      document.getElementById('bulkStyleCount').textContent = student.styleCount;
+      bulkBtn.disabled = student.styleCount === 0;
+
+      // Render Highlighted Editor and Raw Textarea
+      const hlContainer = document.getElementById('highlightEditorContainer');
+      const rawTextarea = document.getElementById('rawEditorTextarea');
+      hlContainer.style.fontSize = `${appState.fontSizePx}px`;
+      rawTextarea.style.fontSize = `${appState.fontSizePx}px`;
+
+      rawTextarea.value = student.text;
+      hlContainer.innerHTML = buildHighlightedHtml(student);
+
+      // Update Bottom Byte Gauge
+      updateByteGaugeUI(student);
+
+      // Render Right-side Grounded Inspection Cards
+      renderInspectionCards(student);
+    }
+
     function renderHighlightedSlice(fullText, allIssues, sliceStart, sliceEnd) {
       const sliceIssues = (allIssues || []).filter(i => i.start >= sliceStart && i.end <= sliceEnd);
       if (sliceIssues.length === 0) {
@@ -2547,55 +2621,6 @@
       }
 
       return renderHighlightedSlice(fullText, student.issues, 0, fullText.length);
-    }
-
-    function buildHighlightedHtml(student) {
-      const fullText = student.text || '';
-      if (!fullText.trim()) {
-        return `<div class="text-slate-400 dark:text-slate-500 text-sm py-8 text-center">우측 상단의 <strong>[직접 타이핑 편집]</strong> 버튼을 눌러 텍스트를 붙여넣거나 새 파일을 업로드하세요.</div>`;
-      }
-
-      let rangeStart = 0;
-      let rangeEnd = fullText.length;
-      if (
-        appState.selectedSubjectIdx !== 'all' &&
-        student.subjects &&
-        student.subjects[appState.selectedSubjectIdx]
-      ) {
-        const sub = student.subjects[appState.selectedSubjectIdx];
-        rangeStart = sub.headerStart;
-        rangeEnd = sub.end;
-      }
-
-      const issues = (student.issues || []).filter(i => i.start >= rangeStart && i.end <= rangeEnd);
-      if (issues.length === 0) {
-        return escapeHtml(fullText.slice(rangeStart, rangeEnd));
-      }
-
-      let html = '';
-      let cursor = rangeStart;
-
-      issues.forEach(issue => {
-        if (issue.start > cursor) {
-          html += escapeHtml(fullText.slice(cursor, issue.start));
-        }
-        const cls =
-          issue.type === 'critical'
-            ? 'hl-critical'
-            : issue.type === 'warning'
-            ? 'hl-warning'
-            : 'hl-style';
-        const activeCls = appState.activeIssueKey === issue.key ? 'active-token' : '';
-        const badgeIcon = issue.type === 'critical' ? '🔴' : issue.type === 'warning' ? '🟡' : '🔵';
-
-        html += `<span class="${cls} ${activeCls}" onclick="handleInlineTokenClick(event, '${escapeJsStr(issue.key)}')" title="${escapeHtml(issue.label)}">${badgeIcon} ${escapeHtml(fullText.slice(issue.start, issue.end))}</span>`;
-        cursor = issue.end;
-      });
-
-      if (cursor < rangeEnd) {
-        html += escapeHtml(fullText.slice(cursor, rangeEnd));
-      }
-      return html;
     }
 
     function renderInspectionCards(student) {
