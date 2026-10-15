@@ -172,11 +172,12 @@
         <span class="text-slate-500 dark:text-slate-400 hidden md:inline font-medium">영역 기준(p.208):</span>
         <select id="categorySelect" onchange="handleCategoryChange()" class="bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer pr-1">
           <option value="setuk_subj" data-chars="500" data-bytes="1500" data-name="과목별 세부능력 및 특기사항">교과세특 (과목별 500자 / 1,500 Byte)</option>
+          <option value="chang_all" data-chars="500" data-bytes="1500" data-name="창의적체험활동(자율·동아리·진로)">창의적체험활동 (자율·동아리·진로 각 500자 / 1,500 Byte)</option>
+          <option value="behav" data-chars="300" data-bytes="900" data-name="행동특성 및 종합의견">행동특성 및 종합의견 (300자 / 900 Byte)</option>
           <option value="setuk_ind" data-chars="500" data-bytes="1500" data-name="개인별 세부능력 및 특기사항">개인별세특 (500자 / 1,500 Byte)</option>
           <option value="chang_auto" data-chars="500" data-bytes="1500" data-name="자율·자치활동 특기사항">창체 자율·자치활동 (500자 / 1,500 Byte)</option>
           <option value="chang_club" data-chars="500" data-bytes="1500" data-name="동아리활동 특기사항">창체 동아리활동 (500자 / 1,500 Byte)</option>
           <option value="chang_career" data-chars="500" data-bytes="1500" data-name="진로활동 특기사항">창체 진로활동 (500자 / 1,500 Byte)</option>
-          <option value="behav" data-chars="300" data-bytes="900" data-name="행동특성 및 종합의견">행동특성 및 종합의견 (300자 / 900 Byte)</option>
           <option value="att_etc" data-chars="500" data-bytes="1500" data-name="출결·학적 특기사항">출결·학적 특기사항 (500자 / 1,500 Byte)</option>
           <option value="reading_subj" data-chars="250" data-bytes="750" data-name="독서활동상황(과목별)">독서활동 과목별 (250자 / 750 Byte)</option>
           <option value="reading_com" data-chars="500" data-bytes="1500" data-name="독서활동상황(공통)">독서활동 공통 (500자 / 1,500 Byte)</option>
@@ -308,8 +309,8 @@
         <!-- 2) 창의적체험활동 파일 업로드 / 점검 -->
         <div ondragover="handleCardDragOver(event)"
              ondragleave="handleCardDragLeave(event)"
-             ondrop="handleCardDrop(event, document.getElementById('homeChangSubSelect').value)"
-             onclick="triggerFileInputClick(document.getElementById('homeChangSubSelect').value)"
+             ondrop="handleCardDrop(event, 'chang_all')"
+             onclick="triggerFileInputClick('chang_all')"
              class="group cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-600 dark:hover:border-teal-500 bg-eyecare-card dark:bg-darkcare-card p-6 flex flex-col justify-between text-center transition-all duration-200 shadow-xs hover:shadow-md">
           <div>
             <div class="flex items-center justify-between mb-4">
@@ -317,7 +318,7 @@
                 항목 2 · 창의적 체험활동
               </span>
               <span class="text-[11px] font-mono font-bold text-teal-700 dark:text-teal-400">
-                500자 / 1,500B
+                영역별 500자 / 1,500B
               </span>
             </div>
 
@@ -329,31 +330,20 @@
               창의적체험활동 파일 업로드 / 점검
             </h2>
             <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-3">
-              자율·자치 / 동아리 / 진로 특기사항<br />
-              <span class="font-semibold text-teal-700 dark:text-teal-400">영역별 최대 500자 (1,500 Byte)</span>
+              <strong>자율·자치 / 동아리 / 진로</strong> 자동 분리 및 개별 글자수 계산<br />
+              <span class="font-semibold text-teal-700 dark:text-teal-400">영역별 각 500자(1,500B) + 진로 '희망분야' 작성 여부 확인</span>
             </p>
-
-            <!-- Sub-selector for Creative Experiential Activity Area -->
-            <div onclick="event.stopPropagation()" class="mb-3">
-              <select id="homeChangSubSelect"
-                      onchange="applyCategoryKeySelection(this.value)"
-                      class="w-full px-2.5 py-1.5 rounded-lg bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-teal-600 cursor-pointer">
-                <option value="chang_auto">창체 · 자율·자치활동 (500자 / 1,500B)</option>
-                <option value="chang_club">창체 · 동아리활동 (500자 / 1,500B)</option>
-                <option value="chang_career">창체 · 진로활동 (500자 / 1,500B)</option>
-              </select>
-            </div>
           </div>
 
           <div class="space-y-2 pt-2 border-t border-eyecare-border dark:border-darkcare-border">
             <button type="button"
-                    onclick="event.stopPropagation(); triggerFileInputClick(document.getElementById('homeChangSubSelect').value);"
+                    onclick="event.stopPropagation(); triggerFileInputClick('chang_all');"
                     class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
               <i data-lucide="upload" class="w-3.5 h-3.5"></i>
               <span>창의적체험활동 엑셀 업로드</span>
             </button>
             <button type="button"
-                    onclick="event.stopPropagation(); startDirectTextEntry(document.getElementById('homeChangSubSelect').value);"
+                    onclick="event.stopPropagation(); startDirectTextEntry('chang_all');"
                     class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
               <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-500"></i>
               <span>직접 텍스트 붙여넣기</span>
@@ -1104,24 +1094,105 @@
     const NON_SUBJECT_LABELS = new Set([
       '주제', '탐구주제', '탐구 주제', '연구주제', '연구 주제', '제목', '활동', '활동내용', '활동 내용',
       '실습내용', '실습 내용', '실습기간', '실습 기간', '현장실습유형', '현장실습 직무분야', '직무분야',
-      '능력단위', '희망분야', '진로희망', '독서활동', '봉사활동', '사용자명', '출력자', '출력일시',
+      '능력단위', '희망분야', '진로희망', '진로희망분야', '독서활동', '봉사활동', '사용자명', '출력자', '출력일시',
       '자율동아리', '방과후학교스포츠클럽', '비고', '특기사항', '사유', '결론', '결과', '출처', '역할'
     ]);
+
+    function isChangcheCategoryKey(catKey = appState.categoryKey) {
+      return catKey === 'chang_all' || catKey === 'chang_auto' || catKey === 'chang_club' || catKey === 'chang_career';
+    }
+
+    function normalizeChangcheAreaName(rawName) {
+      const clean = String(rawName || '').replace(/\s+/g, '').replace(/[ㆍ•.]/g, '·');
+      if (/^(?:\d학년)?(?:자율·?자치활동|자율활동|자율·?자치)(?:\(자율활동\))?$/.test(clean)) {
+        return '자율·자치활동';
+      }
+      if (/^(?:\d학년)?동아리활동(?:\(자율동아리\))?$/.test(clean)) {
+        return '동아리활동';
+      }
+      if (/^(?:\d학년)?진로활동$/.test(clean)) {
+        return '진로활동';
+      }
+      return null;
+    }
 
     function isValidSubjectTitle(rawTitle) {
       if (!rawTitle) return false;
       const clean = rawTitle.replace(/^\([12]학기\)\s*/, '').replace(/^\*/, '').trim();
       if (clean.length < 2 || clean.length > 22) return false;
+      // Reject if parentheses are unbalanced (e.g. "(로봇반: 자율동아리)" matched up to ":")
+      const openParens = (clean.match(/\(/g) || []).length;
+      const closeParens = (clean.match(/\)/g) || []).length;
+      if (openParens !== closeParens) return false;
       if (NON_SUBJECT_LABELS.has(clean)) return false;
       if (/^(https?|ftp|file|mailto)$/i.test(clean)) return false;
       if (/^\d+$/.test(clean)) return false;
       return /^[가-힣A-Za-z0-9]/.test(clean);
     }
 
-    // Parse a student's text into individual subjects if formatted as "과목명: 내용..."
-    function parseSubjectsFromStudentText(text) {
+    // Parse a student's text into individual sections:
+    // - For 창의적체험활동: separates 자율·자치활동, 동아리활동, 진로활동 (and extracts inline 희망분야 if present)
+    // - For 교과 세특: separates individual subjects ("과목명: 내용...")
+    function parseSubjectsFromStudentText(text, studentRef = null) {
       if (!text || !text.trim()) return [];
 
+      // 1) Check if text contains 창의적체험활동 area headers (자율·자치활동, 자율활동, 동아리활동, 진로활동)
+      const changcheHeaderRegex = /(?:^|\n)[ \t]*((?:자율\s*[·ㆍ•.]?\s*자치\s*활동|자율\s*활동|동아리\s*활동|진로\s*활동))\s*:\s*/g;
+      const changMatches = [];
+      let cm;
+      while ((cm = changcheHeaderRegex.exec(text)) !== null) {
+        const leadingNewlineOffset = cm[0].startsWith('\n') ? 1 : 0;
+        const headerStart = cm.index + leadingNewlineOffset;
+        const bodyStart = cm.index + cm[0].length;
+        const stdAreaName = normalizeChangcheAreaName(cm[1]) || cm[1].trim();
+        changMatches.push({
+          subjectName: stdAreaName,
+          headerPrefix: text.slice(headerStart, bodyStart),
+          headerStart,
+          bodyStart,
+          isChangcheArea: true
+        });
+      }
+
+      if (changMatches.length > 0) {
+        return changMatches.map((item, idx) => {
+          const end = idx + 1 < changMatches.length ? changMatches[idx + 1].headerStart : text.length;
+          const rawSlice = text.slice(item.bodyStart, end);
+          let bodyText = rawSlice.replace(/\n+$/, '');
+
+          // If 진로활동 has an inline "희망분야 : ..." line, extract it for careerHope check and exclude from byte count
+          if (item.subjectName === '진로활동') {
+            const inlineHopeMatch = bodyText.match(/^\s*(?:\[?\s*(?:진로)?희망\s*분야\s*[:：]\s*([^\n\]]*)\]?)[ \t]*(?:\n+|$)/);
+            if (inlineHopeMatch) {
+              const extractedHope = (inlineHopeMatch[1] || '').trim();
+              if (studentRef) {
+                studentRef.hasCareerHopeSection = true;
+                if (extractedHope) {
+                  studentRef.careerHope = extractedHope;
+                }
+              }
+              bodyText = bodyText.slice(inlineHopeMatch[0].length).replace(/\n+$/, '');
+            }
+          }
+
+          const bytes = calculateNeisBytes(bodyText);
+          return {
+            idx,
+            subjectName: item.subjectName,
+            headerPrefix: item.headerPrefix,
+            headerStart: item.headerStart,
+            bodyStart: item.bodyStart,
+            end,
+            bodyText,
+            bytes,
+            chars: bodyText.length,
+            isChangcheArea: true,
+            isByteOver: bytes > appState.maxBytes
+          };
+        });
+      }
+
+      // 2) Otherwise, parse standard subject headers ("과목명: 내용...")
       const headerRegex = /(?:^|\n)[ \t]*((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,22}?)\s*:\s+/g;
       const matches = [];
       let m;
@@ -1135,7 +1206,8 @@
             subjectName: candidateTitle,
             headerPrefix: text.slice(headerStart, bodyStart),
             headerStart,
-            bodyStart
+            bodyStart,
+            isChangcheArea: false
           });
         }
       }
@@ -1157,6 +1229,7 @@
           bodyText,
           bytes,
           chars: bodyText.length,
+          isChangcheArea: false,
           isByteOver: bytes > appState.maxBytes
         };
       });
@@ -1256,11 +1329,31 @@
 
     function enrichStudentRecord(student) {
       student.ignoredKeys = student.ignoredKeys || [];
-      student.issues = analyzeStudentText(student.text, student.ignoredKeys);
-      student.subjects = parseSubjectsFromStudentText(student.text);
+      student.subjects = parseSubjectsFromStudentText(student.text, student);
 
-      if (student.subjects.length > 0 && appState.categoryKey === 'setuk_subj') {
-        student.totalCombinedBytes = calculateNeisBytes(student.text);
+      // Ignore any false-positive issue matches that fall inside section header prefixes (e.g., "자율·자치활동: ")
+      const rawIssues = analyzeStudentText(student.text, student.ignoredKeys);
+      if (student.subjects && student.subjects.length > 0) {
+        student.issues = rawIssues.filter(issue => {
+          return !student.subjects.some(sub => issue.start >= sub.headerStart && issue.start < sub.bodyStart);
+        });
+      } else {
+        student.issues = rawIssues;
+      }
+
+      const hasChangcheSections = student.subjects.some(s => s.isChangcheArea);
+      student.isChangcheRecord = hasChangcheSections || isChangcheCategoryKey(appState.categoryKey) || Boolean(student.hasCareerHopeSection);
+
+      // Career Hope ('희망분야') check for 창의적체험활동 (진로활동)
+      const hasJinroSection = student.subjects.some(s => s.subjectName === '진로활동') || appState.categoryKey === 'chang_all' || appState.categoryKey === 'chang_career' || Boolean(student.hasCareerHopeSection);
+      student.checkCareerHope = Boolean(student.isChangcheRecord && hasJinroSection);
+      student.careerHope = String(student.careerHope || '').trim();
+      student.isCareerHopeWritten = student.careerHope.length > 0;
+      student.isCareerHopeEmpty = student.checkCareerHope && !student.isCareerHopeWritten;
+
+      // Multi-section byte calculation (works for both 과목별 세특 and 창의적체험활동 자율·동아리·진로)
+      if (student.subjects.length > 0 && (appState.categoryKey === 'setuk_subj' || student.isChangcheRecord)) {
+        student.totalCombinedBytes = student.subjects.reduce((acc, cur) => acc + cur.bytes, 0);
         const maxSubj = student.subjects.reduce((prev, curr) => (curr.bytes > prev.bytes ? curr : prev), student.subjects[0]);
         student.bytes = maxSubj.bytes;
         student.maxSubjectName = maxSubj.subjectName;
@@ -1277,7 +1370,7 @@
       student.criticalCount = student.issues.filter(i => i.type === 'critical').length;
       student.warningCount = student.issues.filter(i => i.type === 'warning').length;
       student.styleCount = student.issues.filter(i => i.type === 'style').length;
-      student.hasAnyIssue = (student.issues.length > 0) || student.isByteOver;
+      student.hasAnyIssue = (student.issues.length > 0) || student.isByteOver || student.isCareerHopeEmpty;
 
       if (!student.hasAnyIssue && student.reviewed === undefined) {
         student.reviewed = true;
@@ -1425,6 +1518,11 @@
       if (categoryKey) {
         applyCategoryKeySelection(categoryKey);
       }
+      const isChang = isChangcheCategoryKey(appState.categoryKey);
+      const initialTemplate = isChang
+        ? '자율·자치활동: \n\n동아리활동: \n\n진로활동: '
+        : '';
+
       appState.fileName = '직접 입력 검증';
       appState.students = [
         {
@@ -1432,8 +1530,10 @@
           classInfo: '직접입력',
           number: 1,
           rawName: '학생1',
-          text: '',
-          originalText: '',
+          text: initialTemplate,
+          originalText: initialTemplate,
+          careerHope: '',
+          hasCareerHopeSection: isChang,
           ignoredKeys: [],
           manuallyReviewed: false
         }
@@ -1451,13 +1551,19 @@
 
     function addNewEmptyStudent() {
       const nextNum = appState.students.length + 1;
+      const isChang = isChangcheCategoryKey(appState.categoryKey);
+      const initialTemplate = isChang
+        ? '자율·자치활동: \n\n동아리활동: \n\n진로활동: '
+        : '';
       const newStudent = {
         id: Date.now(),
         classInfo: '추가입력',
         number: nextNum,
         rawName: `학생${nextNum}`,
-        text: '',
-        originalText: '',
+        text: initialTemplate,
+        originalText: initialTemplate,
+        careerHope: '',
+        hasCareerHopeSection: isChang,
         ignoredKeys: [],
         manuallyReviewed: false
       };
@@ -1501,47 +1607,42 @@
             }
           }
 
-          if (parsedStudents.length === 0) {
-            showToast('엑셀 파일에서 유효한 학생별 생기부 데이터를 찾지 못했습니다. 나이스 XLS 파일인지 확인해 주세요.', 'warning');
-            return;
-          }
-          finishFileLoad(file.name, parsedStudents, startTime);
-        } catch (err) {
-          console.error(err);
-          showToast('엑셀 파일 파싱 중 오류가 발생했습니다. 올바른 .xls, .xlsx 파일인지 확인해 주세요.', 'warning');
-        }
-      };
-      reader.readAsArrayBuffer(file);
+    // Helper: Check if an individual cell is a 창의적체험활동 Area Label (자율·자치활동, 동아리활동, 진로활동, 봉사활동)
+    function detectChangcheAreaLabel(cellText) {
+      if (!cellText) return null;
+      const clean = String(cellText).replace(/\s+/g, '').replace(/[ㆍ•.]/g, '·');
+      if (/^(?:\d학년)?(?:자율·?자치활동|자율활동|자율·?자치)(?:\(자율활동\))?$/.test(clean)) {
+        return '자율·자치활동';
+      }
+      if (/^(?:\d학년)?동아리활동(?:\(자율동아리\))?$/.test(clean)) {
+        return '동아리활동';
+      }
+      if (/^(?:\d학년)?진로활동$/.test(clean)) {
+        return '진로활동';
+      }
+      if (/^(?:\d학년)?봉사활동(?:실적)?$/.test(clean)) {
+        return '봉사활동';
+      }
+      return null;
     }
 
-    // Helper: Ensure each subject ("과목명: 내용") starts on a clean line break
-    function normalizeSubjectLineBreaks(text) {
-      if (!text) return '';
-      return String(text)
-        .replace(/\r\n/g, '\n')
-        .replace(/([.!?])\s+(?=(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()]{2,20}\s*:\s+)/g, '$1\n')
-        .trim();
-    }
-
-    // Helper: Intelligently merge page-break or multi-row text continuations for the same student
-    function mergeContinuationText(prevText, nextText, prevEndedWithSpace = false) {
-      if (!prevText) return nextText || '';
-      if (!nextText) return prevText || '';
-
-      const trimmedPrev = prevText.trimEnd();
-      const trimmedNext = nextText.trimStart();
-
-      // Check if nextText starts with a new subject header (e.g., "통합사회1:", "공통수학1:", "(2학기)")
-      const startsWithSubject = /^(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,20}\s*:\s+/.test(trimmedNext);
-      const endsWithSentencePunct = /[.!?]$/.test(trimmedPrev);
-
-      if (startsWithSubject || endsWithSentencePunct) {
-        return `${trimmedPrev}\n${trimmedNext}`;
+    // Helper: Check if an individual cell is the '희망분야' label or inline '희망분야: ...'
+    function parseCareerHopeCellInfo(cellText) {
+      if (!cellText) return null;
+      const trimmed = String(cellText).trim();
+      const noSpace = trimmed.replace(/\s+/g, '');
+      if (/^(?:진로)?희망분야[:：]?$/.test(noSpace)) {
+        return { isLabelOnly: true, value: '', restText: '' };
       }
-      if (prevEndedWithSpace) {
-        return `${trimmedPrev} ${trimmedNext}`;
+      const inlineMatch = trimmed.match(/^(?:진로)?희망\s*분야\s*[:：]\s*([^\n]*)(?:\n+(.*))?$/s);
+      if (inlineMatch) {
+        return {
+          isLabelOnly: false,
+          value: (inlineMatch[1] || '').trim(),
+          restText: (inlineMatch[2] || '').trim()
+        };
       }
-      return `${trimmedPrev}${trimmedNext}`;
+      return null;
     }
 
     // Helper: Check if an individual cell is NEIS metadata, report title, column header, school footer, or page number
@@ -1551,21 +1652,26 @@
       if (!t) return true;
 
       // Never treat a pure number (like student number "1", "2", "15") as metadata at the cell level.
-      // Standalone page-number rows containing only numbers are filtered at the row level in classifyNeisRow.
       if (/^\d{1,4}$/.test(t)) return false;
+
+      // Keep 창의적체험활동 area labels and '희망분야' cells so the row parser can separate areas & check 희망분야!
+      if (detectChangcheAreaLabel(t)) return false;
+      if (parseCareerHopeCellInfo(t)) return false;
 
       // Remove all internal whitespace/newlines so "번 호", "성 명", "학 년" match "번호", "성명", "학년"
       const noSpace = t.replace(/\s+/g, '');
 
-      // 1) Exact Table Column Headers & Document Titles
+      // 1) Exact Table Column Headers & Document Titles (Excluding 자율·자치활동, 동아리활동, 진로활동 which are area values)
       const exactHeaders = new Set([
         '번호', '성명', '이름', '학년', '학반', '반', '학번', '학기', '교과', '과목', '과목명', '학점', '단위수',
         '영역', '이수시간', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '계', '구분', '순번',
         '세부능력및특기사항', '과목별세부능력및특기사항', '개인별세부능력및특기사항', '특기사항',
-        '학교생활기록부세부능력및특기사항', '학교생활기록부', '학생생활기록부', '학교생활세부사항기록부',
-        '교과학습발달상황', '창의적체험활동상황', '창의적체험활동', '자율·자치활동', '자율자치활동', '자율활동',
-        '동아리활동', '진로활동', '봉사활동실적', '봉사활동', '행동특성및종합의견', '독서활동상황', '독서활동',
-        '일상생활활동상황', '출결상황', '학적사항', '인적·학적사항', '인적학적사항', '수상경력', '자격증취득상황'
+        '학교생활기록부세부능력및특기사항', '학교생활기록부창의적체험활동상황', '학교생활기록부행동특성및종합의견',
+        '학교생활기록부', '학생생활기록부', '학교생활세부사항기록부',
+        '교과학습발달상황', '창의적체험활동상황', '창의적체험활동',
+        '행동특성및종합의견', '독서활동상황', '독서활동',
+        '일상생활활동상황', '출결상황', '학적사항', '인적·학적사항', '인적학적사항', '수상경력', '자격증취득상황',
+        '일자또는기간', '장소또는주관기관명', '활동내용', '누계시간', '※상급학교미제공', '상급학교미제공'
       ]);
       if (exactHeaders.has(noSpace)) return true;
 
@@ -1592,7 +1698,7 @@
       // 6) Combined Report Titles & Table Column Headers (e.g., "학교생활기록부 세부능력 및 특기사항", "번 호", "성 명")
       if (t.length < 45 && !/[.!?]/.test(t) && /[가-힣]/.test(noSpace)) {
         const strippedTitle = noSpace
-          .replace(/(학교생활기록부|학생생활기록부|학교생활세부사항기록부|교과학습발달상황|창의적체험활동상황|창의적체험활동|자율·?자치활동|자율활동|동아리활동|진로활동|봉사활동실적|봉사활동|행동특성및종합의견|독서활동상황|독서활동|일상생활활동상황|출결상황|학적사항|인적·?학적사항|수상경력|자격증취득상황|과목별세부능력및특기사항|개인별세부능력및특기사항|세부능력및특기사항|특기사항|과목별|개인별|학급별|영역별|항목별|목록|현황|조회|출력물)/g, '')
+          .replace(/(학교생활기록부|학생생활기록부|학교생활세부사항기록부|교과학습발달상황|창의적체험활동상황|창의적체험활동|행동특성및종합의견|독서활동상황|독서활동|일상생활활동상황|출결상황|학적사항|인적·?학적사항|수상경력|자격증취득상황|과목별세부능력및특기사항|개인별세부능력및특기사항|세부능력및특기사항|특기사항|과목별|개인별|학급별|영역별|항목별|목록|현황|조회|출력물)/g, '')
           .replace(/(번호|성명|이름|학년|학반|반|학번|학기|교과|과목명|과목|학점|단위수|영역|이수시간|시간|비고|결재|담임|부장|교감|교장|계)/g, '')
           .replace(/[()\[\]·\-.:：/]/g, '');
         if (strippedTitle.length === 0) {
@@ -1692,13 +1798,15 @@
       const fallbackUnnamedParagraphs = [];
       let currentClassInfo = '업로드 학급';
       let detectedSchool = '';
+      let currentChangcheArea = null;
+      let hasChangcheAreasInFile = false;
 
       const bannedNameWords = new Set([
         '번호', '성명', '이름', '학년', '학반', '학번', '학기', '교과', '과목', '과목명', '학점', '단위수',
         '영역', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '구분', '순번',
-        '세부능력', '특기사항', '자율활동', '자치활동', '동아리활동', '진로활동',
-        '행동특성', '종합의견', '독서활동', '봉사활동', '과목별', '개인별', '공통국어', '공통수학',
-        '공통영어', '통합사회', '통합과학', '한국사', '학교생활', '기록부', '사용자명',
+        '세부능력', '특기사항', '자율활동', '자치활동', '자율·자치활동', '자율자치활동', '동아리활동', '진로활동',
+        '희망분야', '진로희망', '행동특성', '종합의견', '독서활동', '봉사활동', '과목별', '개인별',
+        '공통국어', '공통수학', '공통영어', '통합사회', '통합과학', '한국사', '학교생활', '기록부', '사용자명',
         '교과학습', '발달상황', '창의적', '체험활동'
       ]);
 
@@ -1733,59 +1841,160 @@
 
         const cells = classification.cells;
 
-        // Identify the main record text cell (longest cell in the row)
+        // Skip 봉사활동 실적 rows (e.g. "2026.03.17.-2026.07.15." | "(학교)OO고등학교" | "환경정화") when not in 봉사활동 mode
+        if (
+          appState.categoryKey !== 'vol_50' &&
+          cells.some(c => /^\d{4}\.\d{2}\.\d{2}\./.test(c.text)) &&
+          cells.some(c => /^\((?:학교|개인)\)/.test(c.text))
+        ) {
+          continue;
+        }
+
+        // 1) Detect 창의적체험활동 Area Label (자율·자치활동, 동아리활동, 진로활동, 봉사활동) & '희망분야' Cell
+        let rowArea = null;
+        let areaColIdx = -1;
+        let hopeCellObj = null;
+        let hopeParsedInfo = null;
+
+        for (const cellObj of cells) {
+          const areaCandidate = detectChangcheAreaLabel(cellObj.text);
+          if (areaCandidate && !rowArea) {
+            rowArea = areaCandidate;
+            areaColIdx = cellObj.colIdx;
+            continue;
+          }
+          const hopeCandidate = parseCareerHopeCellInfo(cellObj.text);
+          if (hopeCandidate && !hopeCellObj) {
+            hopeCellObj = cellObj;
+            hopeParsedInfo = hopeCandidate;
+          }
+        }
+
+        if (rowArea && rowArea !== '봉사활동') {
+          hasChangcheAreasInFile = true;
+          currentChangcheArea = rowArea;
+        } else if (rowArea === '봉사활동') {
+          currentChangcheArea = '봉사활동';
+        }
+        if (hopeCellObj) {
+          hasChangcheAreasInFile = true;
+          currentChangcheArea = '진로활동';
+        }
+
+        // Ignore 봉사활동 section rows if inspecting 창의적체험활동 (자율·동아리·진로)
+        if (currentChangcheArea === '봉사활동' && appState.categoryKey !== 'vol_50') {
+          continue;
+        }
+
+        // 2) Extract '희망분야' value if hopeCellObj is present in this row
+        let extractedHopeFromRow = null;
+        let consumedColIndices = new Set();
+        if (areaColIdx !== -1) consumedColIndices.add(areaColIdx);
+
+        if (hopeCellObj) {
+          consumedColIndices.add(hopeCellObj.colIdx);
+          if (!hopeParsedInfo.isLabelOnly) {
+            extractedHopeFromRow = hopeParsedInfo.value;
+          } else {
+            // Look at cells to the right of the '희망분야' label cell
+            const rightCells = cells.filter(c => c.colIdx > hopeCellObj.colIdx && !consumedColIndices.has(c.colIdx));
+            if (rightCells.length === 0) {
+              extractedHopeFromRow = '';
+            } else {
+              const firstRight = rightCells[0];
+              if (firstRight.text.includes('\n')) {
+                const lines = firstRight.text.split('\n');
+                const firstLine = lines[0].trim();
+                if (firstLine.length <= 40) {
+                  extractedHopeFromRow = firstLine;
+                  firstRight.text = lines.slice(1).join('\n').trim();
+                  if (!firstRight.text) consumedColIndices.add(firstRight.colIdx);
+                } else {
+                  extractedHopeFromRow = '';
+                }
+              } else if (rightCells.length >= 2 || firstRight.text.length <= 40) {
+                extractedHopeFromRow = firstRight.text.trim();
+                consumedColIndices.add(firstRight.colIdx);
+              } else {
+                // Only 1 long cell (>40 chars) to the right means 희망분야 value was blank and this is 진로활동 특기사항
+                extractedHopeFromRow = '';
+              }
+            }
+          }
+        }
+
+        // 3) Find Student Name & Number (MUST be to the left of areaColIdx and hopeCellObj)
+        const maxNameColBound = Math.min(
+          areaColIdx !== -1 ? areaColIdx : Infinity,
+          hopeCellObj ? hopeCellObj.colIdx : Infinity
+        );
+
+        // Identify the main text candidate cell among unconsumed cells
         let longestCellObj = null;
         cells.forEach(cellObj => {
+          if (consumedColIndices.has(cellObj.colIdx)) return;
           if (!longestCellObj || cellObj.text.length > longestCellObj.text.length) {
             longestCellObj = cellObj;
           }
         });
 
-        if (!longestCellObj || longestCellObj.text.length < 4) continue;
-        if (isNeisMetadataOrHeaderCell(longestCellObj.text)) continue;
-
         let detectedName = '';
         let nameColIdx = -1;
 
-        // 1) Find student name cell (excluding the main text cell)
         for (const cellObj of cells) {
-          if (cellObj.colIdx === longestCellObj.colIdx) continue;
-          const val = cellObj.text;
+          if (consumedColIndices.has(cellObj.colIdx)) continue;
+          if (cellObj.colIdx >= maxNameColBound) continue;
+          if (longestCellObj && cellObj.colIdx === longestCellObj.colIdx && cells.length > 1 && maxNameColBound === Infinity) continue;
 
-          const cleanNameCandidate = val.replace(/\s+/g, '');
+          const cleanNameCandidate = cellObj.text.replace(/\s+/g, '');
           if (
             !detectedName &&
             /^[가-힣*]{2,5}$/.test(cleanNameCandidate) &&
             !bannedNameWords.has(cleanNameCandidate) &&
-            !/(고등학교|중학교|초등학교|학교|교육청|올림피아드|특기사항|세부능력|기록부)$/.test(cleanNameCandidate)
+            !/(고등학교|중학교|초등학교|학교|교육청|올림피아드|특기사항|세부능력|기록부|분야|교사|의사|약사|판사|검사|간호사|변호사|승무원|요리사|연구원|엔지니어|프로그래머|개발자|디자이너|건축가|경찰관|소방관|군인|공무원)$/.test(cleanNameCandidate)
           ) {
             detectedName = cleanNameCandidate;
             nameColIdx = cellObj.colIdx;
           }
         }
 
-        // 2) Find student number (번호):
-        // In NEIS tables ([번 호] | [성 명] | [학 년] | [세부능력 및 특기사항]),
-        // the student number is to the LEFT of the student name (colIdx < nameColIdx).
         let detectedNum = null;
         if (nameColIdx !== -1) {
           for (const cellObj of cells) {
-            if (cellObj.colIdx === longestCellObj.colIdx) continue;
             if (cellObj.colIdx >= nameColIdx) continue;
-
             const numMatch = cellObj.text.match(/^(\d{1,3})\s*번?$/);
             if (numMatch) {
               detectedNum = parseInt(numMatch[1], 10);
+              consumedColIndices.add(cellObj.colIdx);
               break;
             }
           }
+          consumedColIndices.add(nameColIdx);
         }
 
-        // Also check if a single cell combined "1 홍길동 ..." (common in PDF line extraction)
-        let mainText = longestCellObj.text;
-        const mainRawEndedWithSpace = /\s$/.test(longestCellObj.raw);
+        // Mark pure number cells (grade '1'~'3' or 창체 hours '34', '18', '0') as consumed so they aren't treated as mainText
+        cells.forEach(cellObj => {
+          if (consumedColIndices.has(cellObj.colIdx)) return;
+          if (/^\d{1,3}(\s*시간)?$/.test(cellObj.text)) {
+            if (nameColIdx !== -1 && cellObj.colIdx > nameColIdx) {
+              consumedColIndices.add(cellObj.colIdx);
+            } else if (areaColIdx !== -1 && cellObj.colIdx > areaColIdx) {
+              consumedColIndices.add(cellObj.colIdx);
+            }
+          }
+        });
 
-        if (!detectedName && cells.length === 1) {
+        // 4) Collect remaining unconsumed cell(s) as mainText
+        const remainingTextCells = cells.filter(c => !consumedColIndices.has(c.colIdx));
+        let mainText = remainingTextCells.map(c => c.text).join('\n').trim();
+        const lastRemainingCell = remainingTextCells.length > 0 ? remainingTextCells[remainingTextCells.length - 1] : null;
+        const mainRawEndedWithSpace = lastRemainingCell ? /\s$/.test(lastRemainingCell.raw) : false;
+
+        if (hopeParsedInfo && !hopeParsedInfo.isLabelOnly && hopeParsedInfo.restText) {
+          mainText = hopeParsedInfo.restText + (mainText ? '\n' + mainText : '');
+        }
+
+        if (!detectedName && remainingTextCells.length === 1 && !rowArea && !hopeCellObj) {
           const inlineMatch = mainText.match(/^(?:(\d{1,2}\s*학년\s*\d{1,2}\s*반)\s+)?(\d{1,3})\s*번?\s+([가-힣*]{2,5})(?:\s+[123])?\s+(.*)$/s);
           if (inlineMatch && !bannedNameWords.has(inlineMatch[3])) {
             if (inlineMatch[1]) currentClassInfo = inlineMatch[1].replace(/\s+/g, ' ');
@@ -1803,35 +2012,71 @@
           .join('\n')
           .trim();
 
-        if (!mainText || mainText.length < 4) continue;
+        // Check if mainText starts with inline "희망분야 : ..."
+        if (currentChangcheArea === '진로활동' && mainText) {
+          const inlineHope = parseCareerHopeCellInfo(mainText);
+          if (inlineHope && !inlineHope.isLabelOnly) {
+            extractedHopeFromRow = inlineHope.value;
+            mainText = inlineHope.restText;
+          }
+        }
 
         const prevStudent = result.length > 0 ? result[result.length - 1] : null;
 
-        // Case A: Same student name repeated after a page break
+        // Helper to append text & careerHope to a student record
+        const appendDataToStudent = (stu, areaName, textChunk, hopeVal, rawEndedSpace) => {
+          if (hopeVal !== null && hopeVal !== undefined) {
+            stu.hasCareerHopeSection = true;
+            if (hopeVal.trim().length > 0 || !stu.careerHope) {
+              stu.careerHope = hopeVal.trim();
+            }
+          }
+          if (areaName && areaName !== '봉사활동') {
+            stu.changcheAreas = stu.changcheAreas || {
+              '자율·자치활동': '',
+              '동아리활동': '',
+              '진로활동': ''
+            };
+            if (areaName === '진로활동') {
+              stu.hasCareerHopeSection = true;
+            }
+            if (textChunk) {
+              const prevAreaText = stu.changcheAreas[areaName] || '';
+              const prevAreaSpace = stu._areaEndedWithSpace?.[areaName] || false;
+              stu.changcheAreas[areaName] = mergeContinuationText(prevAreaText, textChunk, prevAreaSpace);
+              stu._areaEndedWithSpace = stu._areaEndedWithSpace || {};
+              stu._areaEndedWithSpace[areaName] = rawEndedSpace;
+            }
+          } else if (textChunk) {
+            stu.text = normalizeSubjectLineBreaks(
+              mergeContinuationText(stu.text, textChunk, stu._lastRawEndedWithSpace)
+            );
+            stu.originalText = stu.text;
+            stu._lastRawEndedWithSpace = rawEndedSpace;
+          }
+        };
+
+        // If this row has neither mainText nor 희망분야 nor a new student name, skip
+        if (!mainText && extractedHopeFromRow === null && !detectedName) {
+          continue;
+        }
+
+        // Case A: Same student name repeated after a page break (or on subsequent area rows)
         if (
           prevStudent &&
           detectedName &&
           prevStudent.rawName === detectedName &&
           (detectedNum === null || prevStudent.number === detectedNum)
         ) {
-          prevStudent.text = normalizeSubjectLineBreaks(
-            mergeContinuationText(prevStudent.text, mainText, prevStudent._lastRawEndedWithSpace)
-          );
-          prevStudent.originalText = prevStudent.text;
-          prevStudent._lastRawEndedWithSpace = mainRawEndedWithSpace;
+          appendDataToStudent(prevStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace);
           continue;
         }
 
-        // Case B: Continuation row with NO student name (e.g. page-break split sentence)
+        // Case B: Continuation row with NO student name (e.g., 동아리활동 row, 진로활동 row, 희망분야 row, or page-break split sentence)
         if (!detectedName) {
           if (prevStudent && detectedNum === null) {
-            prevStudent.text = normalizeSubjectLineBreaks(
-              mergeContinuationText(prevStudent.text, mainText, prevStudent._lastRawEndedWithSpace)
-            );
-            prevStudent.originalText = prevStudent.text;
-            prevStudent._lastRawEndedWithSpace = mainRawEndedWithSpace;
-          } else if (mainText.length >= 15) {
-            // Save in fallback list ONLY in case the entire file has no student names at all
+            appendDataToStudent(prevStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace);
+          } else if (mainText && mainText.length >= 15) {
             fallbackUnnamedParagraphs.push({
               classInfo: currentClassInfo,
               number: detectedNum,
@@ -1841,25 +2086,59 @@
           continue;
         }
 
-        // Case C: Valid named student row
+        // Case C: New valid named student row
         const finalNumber = detectedNum !== null ? detectedNum : (result.length + 1);
-        const normalizedText = normalizeSubjectLineBreaks(mainText);
-
-        result.push({
+        const newStudent = {
           id: result.length + 1,
           classInfo: currentClassInfo,
           number: finalNumber,
           rawName: detectedName,
-          text: normalizedText,
-          originalText: normalizedText,
+          text: '',
+          originalText: '',
+          careerHope: '',
+          hasCareerHopeSection: false,
+          changcheAreas: null,
           ignoredKeys: [],
           manuallyReviewed: false,
-          _lastRawEndedWithSpace: mainRawEndedWithSpace
-        });
+          _lastRawEndedWithSpace: mainRawEndedWithSpace,
+          _areaEndedWithSpace: {}
+        };
+
+        appendDataToStudent(newStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace);
+        result.push(newStudent);
       }
 
       if (detectedSchool) {
         appState.detectedSchoolName = detectedSchool;
+      }
+
+      // Finalize 창의적체험활동 formatted text if 창체 areas were detected
+      if (hasChangcheAreasInFile) {
+        if (!isChangcheCategoryKey(appState.categoryKey)) {
+          const selectEl = document.getElementById('categorySelect');
+          if (selectEl) {
+            selectEl.value = 'chang_all';
+            const opt = selectEl.options[selectEl.selectedIndex];
+            appState.categoryKey = 'chang_all';
+            appState.categoryLabel = opt.getAttribute('data-name') || '창의적체험활동(자율·동아리·진로)';
+            appState.maxChars = 500;
+            appState.maxBytes = 1500;
+          }
+        }
+
+        result.forEach(stu => {
+          if (stu.changcheAreas) {
+            const areaOrder = ['자율·자치활동', '동아리활동', '진로활동'];
+            const formattedParts = areaOrder.map(area => {
+              const body = (stu.changcheAreas[area] || '').trim();
+              return `${area}: ${body}`;
+            });
+            stu.text = formattedParts.join('\n\n');
+            stu.originalText = stu.text;
+            stu.originalCareerHope = stu.careerHope || '';
+            stu.hasCareerHopeSection = true;
+          }
+        });
       }
 
       // Only use fallbackUnnamedParagraphs if the entire file had zero named students
@@ -1871,6 +2150,8 @@
           rawName: `학생${idx + 1}`,
           text: item.text,
           originalText: item.text,
+          careerHope: '',
+          hasCareerHopeSection: false,
           ignoredKeys: [],
           manuallyReviewed: false
         }));
@@ -1973,6 +2254,9 @@
         if (student.styleCount > 0) {
           badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/90 text-blue-700 dark:text-blue-300 text-[11px] font-extrabold border border-blue-200 dark:border-blue-800">🔵 ${student.styleCount}</span>`;
         }
+        if (student.isCareerHopeEmpty) {
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[10px] font-extrabold border border-rose-300 dark:border-rose-800" title="진로활동 희망분야 미작성">희망분야미작성</span>`;
+        }
         if (student.isByteOver) {
           badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-extrabold">초과</span>`;
         }
@@ -1982,7 +2266,9 @@
 
         const byteSubLabel =
           student.subjects && student.subjects.length > 1
-            ? `${student.subjects.length}과목 (최대 ${student.bytes}B)`
+            ? student.isChangcheRecord
+              ? `3영역 (최대 ${student.bytes}B)`
+              : `${student.subjects.length}과목 (최대 ${student.bytes}B)`
             : `${student.bytes}B`;
 
         return `
@@ -2028,7 +2314,8 @@
       if (!bar) return;
 
       const subjects = student.subjects || [];
-      if (subjects.length <= 1 || appState.categoryKey !== 'setuk_subj') {
+      const showBar = (subjects.length > 1 && (appState.categoryKey === 'setuk_subj' || student.isChangcheRecord)) || student.checkCareerHope;
+      if (!showBar) {
         bar.classList.add('hidden');
         bar.innerHTML = '';
         return;
@@ -2036,10 +2323,16 @@
 
       bar.classList.remove('hidden');
       const isAll = appState.selectedSubjectIdx === 'all';
+      const barTitle = student.isChangcheRecord
+        ? `창체 영역별 개별 점검(각 500자/1,500B):`
+        : `과목별 세특 점검(${subjects.length}과목):`;
+      const allBtnLabel = student.isChangcheRecord
+        ? `전체 영역 보기 (${subjects.length})`
+        : `전체 과목 보기 (${subjects.length})`;
 
       let html = `
         <span class="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 shrink-0 mr-1 flex items-center gap-1">
-          <i data-lucide="layers" class="w-3.5 h-3.5"></i>과목별 세특 점검(${subjects.length}과목):
+          <i data-lucide="layers" class="w-3.5 h-3.5"></i>${barTitle}
         </span>
         <button type="button" onclick="selectSubjectTab('all')"
                 class="px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition ${
@@ -2047,7 +2340,7 @@
                     ? 'bg-emerald-700 text-white shadow-2xs'
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-eyecare-border dark:border-darkcare-border hover:bg-eyecare-muted'
                 }">
-          전체 과목 보기 (${subjects.length})
+          ${allBtnLabel}
         </button>
       `;
 
@@ -2065,10 +2358,27 @@
                       : overCls
                   }">
             <span>${escapeHtml(sub.subjectName)}</span>
-            <span class="text-[10px] font-mono ${isActive ? 'text-emerald-100' : sub.isByteOver ? 'text-rose-600 dark:text-rose-400 font-extrabold' : 'text-slate-400'}">${sub.bytes}B${sub.isByteOver ? ' 🔴초과' : ''}</span>
+            <span class="text-[10px] font-mono ${isActive ? 'text-emerald-100' : sub.isByteOver ? 'text-rose-600 dark:text-rose-400 font-extrabold' : 'text-slate-400'}">${sub.chars}자 · ${sub.bytes}B${sub.isByteOver ? ' 🔴초과' : ''}</span>
           </button>
         `;
       });
+
+      if (student.checkCareerHope) {
+        if (student.isCareerHopeWritten) {
+          html += `
+            <div class="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-100/90 dark:bg-teal-950/80 text-teal-900 dark:text-teal-200 border border-teal-300 dark:border-teal-800 text-xs font-bold shrink-0">
+              <span>✅ 진로 희망분야: 작성됨</span>
+              <span class="px-1.5 py-0.2 rounded bg-white/80 dark:bg-slate-800 text-teal-800 dark:text-teal-300 font-extrabold">"${escapeHtml(student.careerHope)}"</span>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 border border-rose-300 dark:border-rose-700 text-xs font-extrabold shrink-0">
+              <span>🔴 진로 희망분야: 미작성 (확인 필요)</span>
+            </div>
+          `;
+        }
+      }
 
       bar.innerHTML = html;
     }
@@ -2101,36 +2411,142 @@
       if (student.styleCount > 0) {
         headerBadges += `<span class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">🔵 어미/특수문자/맞춤법 ${student.styleCount}건</span>`;
       }
+      if (student.checkCareerHope) {
+        if (student.isCareerHopeWritten) {
+          headerBadges += `<span class="px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 text-xs font-bold border border-teal-300 dark:border-teal-800">🎯 희망분야: ${escapeHtml(student.careerHope)} (작성됨)</span>`;
+        } else {
+          headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-xs font-bold">🔴 진로 희망분야 미작성</span>`;
+        }
+      }
       if (student.isByteOver) {
         if (student.overByteSubjects && student.overByteSubjects.length > 0) {
           const overNames = student.overByteSubjects.map(s => `${s.subjectName}(+${s.bytes - appState.maxBytes}B)`).join(', ');
-          headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-xs font-bold">과목 용량 초과: ${escapeHtml(overNames)}</span>`;
+          headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-xs font-bold">영역 용량 초과: ${escapeHtml(overNames)}</span>`;
         } else {
           headerBadges += `<span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-xs font-bold">용량 초과 (+${student.bytes - appState.maxBytes} Byte)</span>`;
         }
       }
       if (!student.hasAnyIssue && student.text.trim().length > 0) {
-        headerBadges = `<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-300 dark:border-emerald-800">✅ 2026 기재요령 및 용량 기준 통과</span>`;
+        headerBadges += `<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-300 dark:border-emerald-800">✅ 2026 기재요령 및 용량 기준 통과</span>`;
       }
       badgeBox.innerHTML = headerBadges;
+    function renderHighlightedSlice(fullText, allIssues, sliceStart, sliceEnd) {
+      const sliceIssues = (allIssues || []).filter(i => i.start >= sliceStart && i.end <= sliceEnd);
+      if (sliceIssues.length === 0) {
+        return escapeHtml(fullText.slice(sliceStart, sliceEnd));
+      }
 
-      renderSubjectTabsBar(student);
+      let html = '';
+      let cursor = sliceStart;
 
-      const btnBulkStyle = document.getElementById('btnBulkFixStyle');
-      const bulkStyleCount = document.getElementById('bulkStyleCount');
-      bulkStyleCount.textContent = student.styleCount;
-      btnBulkStyle.disabled = student.styleCount === 0;
+      sliceIssues.forEach(issue => {
+        if (issue.start > cursor) {
+          html += escapeHtml(fullText.slice(cursor, issue.start));
+        }
+        const cls =
+          issue.type === 'critical'
+            ? 'hl-critical'
+            : issue.type === 'warning'
+            ? 'hl-warning'
+            : 'hl-style';
+        const activeCls = appState.activeIssueKey === issue.key ? 'active-token' : '';
+        const badgeIcon = issue.type === 'critical' ? '🔴' : issue.type === 'warning' ? '🟡' : '🔵';
 
-      const highlightBox = document.getElementById('highlightEditorContainer');
-      highlightBox.style.fontSize = `${appState.fontSizePx}px`;
-      const rawTextarea = document.getElementById('rawEditorTextarea');
-      rawTextarea.style.fontSize = `${appState.fontSizePx}px`;
-      rawTextarea.value = student.text;
+        html += `<span class="${cls} ${activeCls}" onclick="handleInlineTokenClick(event, '${escapeJsStr(issue.key)}')" title="${escapeHtml(issue.label)}">${badgeIcon} ${escapeHtml(fullText.slice(issue.start, issue.end))}</span>`;
+        cursor = issue.end;
+      });
 
-      highlightBox.innerHTML = buildHighlightedHtml(student);
+      if (cursor < sliceEnd) {
+        html += escapeHtml(fullText.slice(cursor, sliceEnd));
+      }
+      return html;
+    }
 
-      renderInspectionCards(student);
-      updateByteGaugeUI(student);
+    function updateCareerHopeValue(newVal) {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student) return;
+      student.careerHope = String(newVal || '').trim();
+      student.hasCareerHopeSection = true;
+      enrichStudentRecord(student);
+      renderWorkspaceAll();
+    }
+
+    function copySectionBodyByIndex(subIdx) {
+      const student = appState.students.find(s => s.id === appState.selectedStudentId);
+      if (!student || !student.subjects || !student.subjects[subIdx]) return;
+      const sub = student.subjects[subIdx];
+      copyTextFallback(sub.bodyText).then(() => {
+        showToast(`[${student.number}번 ${maskStudentName(student.rawName)} - ${sub.subjectName}] 본문이 복사되었습니다! (${sub.chars}자 / ${sub.bytes} Byte)`, 'success');
+      });
+    }
+
+    function buildHighlightedHtml(student) {
+      const fullText = student.text || '';
+      if (!fullText.trim()) {
+        return `<div class="text-slate-400 dark:text-slate-500 text-sm py-8 text-center">우측 상단의 <strong>[직접 타이핑 편집]</strong> 버튼을 눌러 텍스트를 붙여넣거나 새 파일을 업로드하세요.</div>`;
+      }
+
+      // Render structured cards per section when in 창의적체험활동 or multi-subject mode
+      if (student.subjects && student.subjects.length > 0 && (student.isChangcheRecord || appState.categoryKey === 'setuk_subj')) {
+        const targetSections =
+          appState.selectedSubjectIdx === 'all'
+            ? student.subjects
+            : student.subjects.filter(s => s.idx === appState.selectedSubjectIdx);
+
+        return `<div class="space-y-4 whitespace-normal">${targetSections.map(sub => {
+          const isOver = sub.bytes > appState.maxBytes;
+          const statusBadge = isOver
+            ? `<span class="px-2 py-0.5 rounded-md bg-rose-600 text-white text-[11px] font-extrabold">🔴 용량 초과 (+${sub.bytes - appState.maxBytes} Byte)</span>`
+            : `<span class="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold">✅ 적정</span>`;
+
+          let careerHopeBannerHtml = '';
+          if (sub.subjectName === '진로활동' && student.checkCareerHope) {
+            const hopeStatusBadge = student.isCareerHopeWritten
+              ? `<span class="px-2 py-0.5 rounded bg-emerald-600 text-white text-[11px] font-extrabold">✅ 작성됨</span>`
+              : `<span class="px-2 py-0.5 rounded bg-rose-600 text-white text-[11px] font-extrabold">🔴 미작성 (확인 필요)</span>`;
+
+            careerHopeBannerHtml = `
+              <div class="px-3.5 py-2.5 bg-teal-50/70 dark:bg-teal-950/40 border-b border-eyecare-border dark:border-darkcare-border flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-extrabold text-teal-900 dark:text-teal-200">📌 진로활동 [희망분야] 작성 확인:</span>
+                  ${hopeStatusBadge}
+                  <input type="text"
+                         value="${escapeHtml(student.careerHope)}"
+                         placeholder="희망분야 미작성 (예: 컴퓨터공학 분야, 진로탐색 중임.)"
+                         onchange="updateCareerHopeValue(this.value)"
+                         class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border ${student.isCareerHopeWritten ? 'border-teal-300 dark:border-teal-700' : 'border-rose-400 dark:border-rose-600'} text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 w-56 sm:w-64" />
+                </div>
+                <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">※ 희망분야는 진로활동 글자수(500자/1,500B) 계산에서 제외됩니다.</span>
+              </div>
+            `;
+          }
+
+          const bodyHtml = sub.bodyText.trim()
+            ? renderHighlightedSlice(fullText, student.issues, sub.bodyStart, sub.end)
+            : `<span class="text-slate-400 dark:text-slate-500 text-xs italic">(입력된 특기사항 내용이 없습니다)</span>`;
+
+          return `
+            <div class="rounded-xl border ${isOver ? 'border-rose-400 dark:border-rose-700' : 'border-eyecare-border dark:border-darkcare-border'} bg-eyecare-surface/50 dark:bg-darkcare-surface/50 overflow-hidden shadow-2xs">
+              <div class="px-3.5 py-2 bg-eyecare-surface dark:bg-darkcare-surface border-b border-eyecare-border dark:border-darkcare-border flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-0.5 rounded-lg bg-slate-800 dark:bg-slate-700 text-white text-xs font-extrabold">${escapeHtml(sub.subjectName)}</span>
+                  <span class="text-xs font-bold text-slate-600 dark:text-slate-300">공백 포함 <strong>${sub.chars.toLocaleString()}자</strong> / ${appState.maxChars}자</span>
+                  <span class="text-xs font-mono font-extrabold ${isOver ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}">(${sub.bytes.toLocaleString()} / ${appState.maxBytes.toLocaleString()} Byte)</span>
+                  ${statusBadge}
+                </div>
+                <button type="button" onclick="copySectionBodyByIndex(${sub.idx})" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 border border-eyecare-border dark:border-darkcare-border text-[11px] font-bold text-slate-700 dark:text-slate-200 transition cursor-pointer">
+                  <i data-lucide="copy" class="w-3 h-3 text-emerald-600"></i>
+                  <span>${escapeHtml(sub.subjectName)}만 복사</span>
+                </button>
+              </div>
+              ${careerHopeBannerHtml}
+              <div class="p-4 whitespace-pre-wrap break-keep leading-[1.85] text-slate-800 dark:text-slate-100">${bodyHtml}</div>
+            </div>
+          `;
+        }).join('')}</div>`;
+      }
+
+      return renderHighlightedSlice(fullText, student.issues, 0, fullText.length);
     }
 
     function buildHighlightedHtml(student) {
@@ -2190,10 +2606,11 @@
           : student.isByteOver
           ? 1
           : 0;
-      const totalIssues = student.issues.length + overCount;
+      const hopeMissingCount = student.isCareerHopeEmpty ? 1 : 0;
+      const totalIssues = student.issues.length + overCount + hopeMissingCount;
       document.getElementById('cardTotalCountBadge').textContent = `${totalIssues}건`;
 
-      if (!student.text.trim()) {
+      if (!student.text.trim() && !student.checkCareerHope) {
         container.innerHTML = `
           <div class="h-full flex flex-col items-center justify-center text-center p-6 space-y-2 text-xs text-slate-400">
             <i data-lucide="file-text" class="w-8 h-8 stroke-1"></i>
@@ -2203,9 +2620,47 @@
         return;
       }
 
+      // Build 창의적체험활동 summary box (자율·자치 / 동아리 / 진로 개별 글자수 + 희망분야 작성 여부)
+      let changcheSummaryBoxHtml = '';
+      if (student.isChangcheRecord && student.subjects && student.subjects.length > 0) {
+        const rowsHtml = student.subjects.map(s => {
+          const over = s.bytes > appState.maxBytes;
+          return `
+            <div class="flex items-center justify-between py-1 border-b border-eyecare-border/60 dark:border-darkcare-border/60 last:border-b-0">
+              <span class="font-bold text-slate-700 dark:text-slate-200">• ${escapeHtml(s.subjectName)}</span>
+              <span class="font-mono font-bold ${over ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}">
+                ${s.chars}자 / ${appState.maxChars}자 (${s.bytes.toLocaleString()} / ${appState.maxBytes.toLocaleString()}B) ${over ? '🔴초과' : '✅'}
+              </span>
+            </div>
+          `;
+        }).join('');
+
+        const hopeRowHtml = student.checkCareerHope
+          ? `
+            <div class="flex items-center justify-between pt-1.5 mt-1 border-t border-eyecare-border dark:border-darkcare-border">
+              <span class="font-bold text-teal-800 dark:text-teal-300">📌 진로 [희망분야]</span>
+              ${
+                student.isCareerHopeWritten
+                  ? `<span class="font-bold text-emerald-700 dark:text-emerald-400">✅ 작성됨 ("${escapeHtml(student.careerHope)}")</span>`
+                  : `<span class="font-extrabold text-rose-600 dark:text-rose-400">🔴 미작성 (확인 필요)</span>`
+              }
+            </div>
+          `
+          : '';
+
+        changcheSummaryBoxHtml = `
+          <div class="p-3 rounded-xl bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border text-[11px] space-y-1 shadow-2xs">
+            <p class="font-extrabold text-teal-800 dark:text-teal-300 mb-1">📊 창체 영역별 개별 용량 및 희망분야 점검 (각 ${appState.maxChars}자 / ${appState.maxBytes.toLocaleString()}B)</p>
+            ${rowsHtml}
+            ${hopeRowHtml}
+          </div>
+        `;
+      }
+
       if (totalIssues === 0) {
-        const multiSubjNote =
-          student.subjects && student.subjects.length > 1
+        const multiSubjNote = changcheSummaryBoxHtml
+          ? `<div class="mt-2 w-full text-left">${changcheSummaryBoxHtml}</div>`
+          : student.subjects && student.subjects.length > 1
             ? `<div class="mt-2 p-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border text-[11px] text-left space-y-1 w-full">
                 <p class="font-bold text-emerald-700 dark:text-emerald-400">📊 과목별 바이트 점검 결과 (기준: 과목당 ${appState.maxBytes.toLocaleString()}B)</p>
                 ${student.subjects.map(s => `<div class="flex justify-between"><span>• ${escapeHtml(s.subjectName)}</span><span class="font-mono font-bold">${s.bytes.toLocaleString()} / ${appState.maxBytes.toLocaleString()}B (${s.chars}자)</span></div>`).join('')}
@@ -2227,7 +2682,26 @@
         return;
       }
 
-      let cardsHtml = '';
+      let cardsHtml = changcheSummaryBoxHtml;
+
+      if (student.isCareerHopeEmpty) {
+        cardsHtml += `
+          <div class="p-3.5 rounded-xl bg-rose-50/90 dark:bg-rose-950/50 border-2 border-rose-400 dark:border-rose-700 space-y-2 shadow-2xs">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-rose-800 dark:text-rose-300 flex items-center gap-1">
+                🔴 [진로활동 - 희망분야] 미작성 확인 필요!
+              </span>
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">미기재</span>
+            </div>
+            <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              진로활동 특기사항 내 <strong>'희망분야'</strong>가 비어 있습니다. 기재 누락과 구분하기 위해 학생이 진로희망을 정하지 못한 경우에도 <strong>'진로탐색 중임.'</strong>, <strong>'현재 진로희망 없음.'</strong> 등으로 입력해야 합니다.
+            </p>
+            <div class="pt-1 border-t border-rose-200/70 dark:border-rose-800/70 text-[11px] text-rose-800/80 dark:text-rose-300/80 font-medium">
+              📖 근거: 2026 학교생활기록부 기재요령 창의적 체험활동상황 - 진로활동 (p.85)
+            </div>
+          </div>
+        `;
+      }
 
       if (student.isByteOver) {
         if (student.overByteSubjects && student.overByteSubjects.length > 0) {
@@ -2555,6 +3029,9 @@
       const student = appState.students.find(s => s.id === appState.selectedStudentId);
       if (!student) return;
       student.text = student.originalText;
+      if (student.originalCareerHope !== undefined) {
+        student.careerHope = student.originalCareerHope;
+      }
       student.ignoredKeys = [];
       enrichStudentRecord(student);
       updateVerificationTimestamp();
@@ -2571,11 +3048,11 @@
       const progressBar = document.getElementById('byteProgressBar');
       const catLabel = document.getElementById('bottomCategoryLabel');
 
-      if (student.subjects && student.subjects.length > 0 && appState.categoryKey === 'setuk_subj') {
+      if (student.subjects && student.subjects.length > 0 && (appState.categoryKey === 'setuk_subj' || student.isChangcheRecord)) {
         if (appState.selectedSubjectIdx !== 'all' && student.subjects[appState.selectedSubjectIdx]) {
           const sub = student.subjects[appState.selectedSubjectIdx];
-          catLabel.textContent = `[${sub.subjectName}] 세특 (최대 ${maxC}자)`;
-          charSubText.textContent = `(과목 본문 ${sub.chars.toLocaleString()}자 / 기준 ${maxC}자)`;
+          catLabel.textContent = `[${sub.subjectName}] (최대 ${maxC}자)`;
+          charSubText.textContent = `(영역 본문 ${sub.chars.toLocaleString()}자 / 기준 ${maxC}자)`;
           const pct = Math.min(100, Math.round((sub.bytes / maxB) * 100));
           progressBar.style.width = `${pct}%`;
 
@@ -2592,17 +3069,23 @@
         }
 
         if (student.subjects.length > 1) {
-          catLabel.textContent = `전 과목 세특 (${student.subjects.length}과목 · 과목당 ${maxC}자)`;
-          charSubText.textContent = `(최대 과목: ${student.maxSubjectName} / 전체 합산 ${student.totalCombinedBytes.toLocaleString()}B)`;
+          if (student.isChangcheRecord) {
+            catLabel.textContent = `창체 영역별 개별 기준 (자율·동아리·진로 각 ${maxC}자)`;
+            const perAreaSummary = student.subjects.map(s => `${s.subjectName} ${s.chars}자(${s.bytes}B)`).join(' · ');
+            charSubText.textContent = `(${perAreaSummary})`;
+          } else {
+            catLabel.textContent = `전 과목 세특 (${student.subjects.length}과목 · 과목당 ${maxC}자)`;
+            charSubText.textContent = `(최대 과목: ${student.maxSubjectName} / 전체 합산 ${student.totalCombinedBytes.toLocaleString()}B)`;
+          }
           const pct = Math.min(100, Math.round((student.bytes / maxB) * 100));
           progressBar.style.width = `${pct}%`;
 
           if (student.isByteOver) {
-            statusText.textContent = `최대 ${student.bytes.toLocaleString()} / ${maxB.toLocaleString()} Byte (${student.overByteSubjects.length}개 과목 초과!)`;
+            statusText.textContent = `최대 ${student.bytes.toLocaleString()} / ${maxB.toLocaleString()} Byte (${student.overByteSubjects.length}개 영역 초과!)`;
             statusText.className = 'font-extrabold text-rose-600 dark:text-rose-400';
             progressBar.className = 'h-full rounded-full bg-rose-600 transition-all duration-300';
           } else {
-            statusText.textContent = `최대 ${student.bytes.toLocaleString()} / ${maxB.toLocaleString()} Byte (전 과목 통과)`;
+            statusText.textContent = `최대 ${student.bytes.toLocaleString()} / ${maxB.toLocaleString()} Byte (전 영역 통과)`;
             statusText.className = 'font-extrabold text-emerald-700 dark:text-emerald-400';
             progressBar.className = 'h-full rounded-full bg-emerald-600 transition-all duration-300';
           }
@@ -2794,11 +3277,15 @@
 
       appState.students.forEach(s => {
         const filteredIssues = s.issues.filter(i => includeStyle || i.type !== 'style');
-        if (filteredIssues.length === 0 && !s.isByteOver) return;
+        if (filteredIssues.length === 0 && !s.isByteOver && !s.isCareerHopeEmpty) return;
 
         flaggedStudentCount++;
         const masked = maskStudentName(s.rawName);
         const details = [];
+
+        if (s.isCareerHopeEmpty) {
+          details.push(`[🔴진로 희망분야 미작성] 진로활동 '희망분야' 기재 누락 확인 요망 (기재요령 p.85)`);
+        }
 
         if (s.isByteOver) {
           if (s.overByteSubjects && s.overByteSubjects.length > 0) {
