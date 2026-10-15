@@ -240,9 +240,6 @@
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           나이스(NEIS) 학생부 항목별 엑셀 파일을 업로드하세요
         </h1>
-        <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
-          업로드 즉시 학생 성명은 자동 마스킹(<code class="px-1 py-0.5 rounded bg-eyecare-muted dark:bg-darkcare-muted text-slate-800 dark:text-slate-200 font-semibold">홍*동</code>) 처리되며, <strong class="text-slate-800 dark:text-slate-200">2026 기재요령 금지어·주의어·명사형 종결어미·과목별 최대 바이트(Byte)</strong>를 검증합니다.
-        </p>
       </div>
 
       <!-- NEIS Excel Download Guide Box -->
@@ -300,35 +297,6 @@
             <i data-lucide="edit-3" class="w-4 h-4 text-slate-500"></i>
             <span>파일 없이 직접 텍스트 붙여넣어 검증</span>
           </button>
-        </div>
-      </div>
-
-      <!-- Compact Summary of 2026 Guideline Byte Limits (p.208) -->
-      <div class="bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border rounded-2xl p-4 text-xs space-y-2.5">
-        <div class="flex items-center justify-between">
-          <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <i data-lucide="info" class="w-4 h-4 text-emerald-600"></i>
-            2026학년도 학교생활기록부 영역별 최대 입력 용량 요약 (기재요령 p.208)
-          </span>
-          <button type="button" onclick="openGuidelineModal()" class="text-emerald-700 dark:text-emerald-400 font-bold hover:underline">전체 기준표 보기 →</button>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-          <div class="p-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border">
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">과목별·개인별 세특</p>
-            <p class="font-extrabold text-slate-900 dark:text-white mt-0.5">500자 <span class="text-[11px] font-normal text-slate-500">(1,500B)</span></p>
-          </div>
-          <div class="p-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border">
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">창체 (자율·동아리·진로)</p>
-            <p class="font-extrabold text-slate-900 dark:text-white mt-0.5">각 500자 <span class="text-[11px] font-normal text-slate-500">(1,500B)</span></p>
-          </div>
-          <div class="p-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border">
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">행동특성 및 종합의견</p>
-            <p class="font-extrabold text-emerald-700 dark:text-emerald-400 mt-0.5">300자 <span class="text-[11px] font-normal text-slate-500">(900B)</span></p>
-          </div>
-          <div class="p-2.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card border border-eyecare-border dark:border-darkcare-border">
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">독서활동 (과목/공통)</p>
-            <p class="font-extrabold text-slate-900 dark:text-white mt-0.5">250자 / 500자</p>
-          </div>
         </div>
       </div>
     </div>
@@ -744,6 +712,12 @@
           <p class="font-extrabold text-amber-800 dark:text-amber-300 text-sm">🟡 문맥 확인 필수 (기재 주의) 및 🔵 서술형 입력 유의사항 (기재요령 p.19, p.30, p.82, p.118)</p>
           <ul class="list-disc pl-4 space-y-1">
             <li><strong>구체적인 특정 대학명, 기관명, 상호명, 강사명 (p.19):</strong> 교육관련기관(교육부 및 소속기관 6개, 시도교육청·교육지원청 및 직속·소속기관)만 기관명 입력 가능. 시도교육감 승인 학교 밖 교육기관은 <code>학교 밖 교육기관(기관 유형: 교육청, 대학, 지역사회기관, 기업)</code>으로 통칭하여 입력.</li>
+            <li><strong>자율탐구활동 및 연구보고서(소논문) (p.82, p.118, p.149):</strong> 창체 및 세특에서 소논문 실적(제목, 연구 주제, 참여인원, 소요시간) 기재 불가. 세특은 작성 가능 과목(수학과제 탐구, 사회문제 탐구, 융합과학 탐구, 과학과제 연구, 사회과제 연구, 윤리문제 탐구[1·2학년])에 한하여 실적 제외 후 기재 가능.</li>
+            <li><strong>서술형 항목 입력 유의사항 (p.30):</strong> 특수문자(★, ● 등) 및 문단구분 기호(①, ② 등) 입력을 지양하고, 명사형 종결어미(~함., ~임., ~보임. 등)로 종결함.</li>
+          </ul>
+        </div>
+      </div>
+
       <div class="px-5 py-3 bg-eyecare-surface dark:bg-darkcare-surface border-t border-eyecare-border dark:border-darkcare-border flex items-center justify-between gap-2">
         <a href="./2026 학교생활기록부 기재요령(고등학교).pdf"
            download="2026학년도 학교생활기록부 기재요령(고등학교).pdf"
@@ -2764,11 +2738,32 @@
       document.getElementById('guidelineModal').classList.add('hidden');
     }
 
-    function handleGuidelinePdfDownload(event) {
+    async function handleGuidelinePdfDownload(event) {
       if (event) {
+        event.preventDefault();
         event.stopPropagation();
       }
-      showToast("📥 '2026학년도 학교생활기록부 기재요령(고등학교).pdf' 다운로드를 시작합니다.", 'success');
+      const pdfFileName = '2026 학교생활기록부 기재요령(고등학교).pdf';
+      const downloadName = '2026학년도 학교생활기록부 기재요령(고등학교).pdf';
+
+      try {
+        const res = await fetch(`./${encodeURIComponent(pdfFileName)}`, { method: 'HEAD' });
+        if (res.ok) {
+          const link = document.createElement('a');
+          link.href = `./${encodeURIComponent(pdfFileName)}`;
+          link.download = downloadName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          showToast("📥 '2026학년도 학교생활기록부 기재요령(고등학교).pdf' 다운로드를 시작합니다.", 'success');
+          return;
+        }
+      } catch (e) {
+        // Fallback when running in preview or without the PDF file in the same folder
+      }
+
+      openGuidelineModal();
+      showToast("💡 현재 미리보기 화면에는 PDF 원본 파일이 연결되어 있지 않아 핵심 기준표 창을 열었습니다. (GitHub/Vercel 배포 시 PDF 파일을 같은 폴더에 넣으면 즉시 다운로드됩니다)", 'info');
     }
 
     function wipeAllDataNow() {
