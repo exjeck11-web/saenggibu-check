@@ -171,7 +171,8 @@
         <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0"></i>
         <span class="text-slate-500 dark:text-slate-400 hidden md:inline font-medium">영역 기준(p.208):</span>
         <select id="categorySelect" onchange="handleCategoryChange()" class="bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer pr-1">
-          <option value="setuk_subj" data-chars="500" data-bytes="1500" data-name="과목별 세부능력 및 특기사항">교과세특 (과목별 500자 / 1,500 Byte)</option>
+          <option value="setuk_teacher" data-chars="500" data-bytes="1500" data-name="교과세특 (교과 교사용)">교과세특 · 교과 교사용 (과목당 500자 / 1,500 Byte)</option>
+          <option value="setuk_homeroom" data-chars="500" data-bytes="1500" data-name="교과세특 (담임 교사용)">교과세특 · 담임 교사용 (전 과목 각 500자 / 1,500 Byte)</option>
           <option value="chang_all" data-chars="500" data-bytes="1500" data-name="창의적체험활동(자율·동아리·진로)">창의적체험활동 (자율·동아리·진로 각 500자 / 1,500 Byte)</option>
           <option value="behav" data-chars="300" data-bytes="900" data-name="행동특성 및 종합의견">행동특성 및 종합의견 (300자 / 900 Byte)</option>
           <option value="setuk_ind" data-chars="500" data-bytes="1500" data-name="개인별 세부능력 및 특기사항">개인별세특 (500자 / 1,500 Byte)</option>
@@ -231,7 +232,7 @@
 
   <!-- ==================== 2. CLEAN INITIAL UPLOAD VIEW ==================== -->
   <main id="uploadView" class="flex-1 overflow-y-auto flex items-center justify-center p-4 sm:p-6">
-    <div class="max-w-5xl w-full space-y-5">
+    <div class="max-w-6xl w-full space-y-5">
       <!-- Top Title Banner -->
       <div class="text-center space-y-2">
         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
@@ -253,56 +254,127 @@
             💡 나이스(NEIS)에서 검토용 엑셀(XLS) 파일 내려받는 방법
           </p>
           <p class="text-emerald-900 dark:text-emerald-300 font-semibold leading-relaxed">
-            '학급담임-학생부-학교생활기록부-학생부 항목별 조회'로 들어가 자료 조회, XLS 파일 다운로드합니다.
+            • <strong>담임 교사용 (교과세특 통합·창체·행특):</strong> '학급담임-학생부-학교생활기록부-학생부 항목별 조회'로 들어가 자료 조회 후 XLS 파일 다운로드<br />
+            • <strong>교과 교사용 (담당 과목 세특):</strong> '교과담임-성적처리-과목별세부능력및특기사항'에서 자료 조회 및 엑셀 파일 다운로드
           </p>
         </div>
       </div>
 
-      <!-- 3-Column Category Upload & Inspection Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Category Upload & Inspection Cards (교과 세특 세분화: 1) 교과 교사용 / 2) 담임 교사용 + 창체 + 행특) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        <!-- 1) 교과 세특 파일 업로드 / 점검 -->
-        <div ondragover="handleCardDragOver(event)"
-             ondragleave="handleCardDragLeave(event)"
-             ondrop="handleCardDrop(event, 'setuk_subj')"
-             onclick="triggerFileInputClick('setuk_subj')"
-             class="group cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-600 dark:hover:border-emerald-500 bg-eyecare-card dark:bg-darkcare-card p-6 flex flex-col justify-between text-center transition-all duration-200 shadow-xs hover:shadow-md">
+        <!-- 1) 교과 세특 파일 업로드 / 점검 (교과 교사용 & 담임 교사용 세분화) -->
+        <div class="lg:col-span-6 rounded-2xl border-2 border-emerald-200 dark:border-emerald-900/70 bg-eyecare-card dark:bg-darkcare-card p-5 flex flex-col justify-between shadow-xs">
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                항목 1 · 교과학습발달상황
-              </span>
+            <!-- Section Header -->
+            <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-eyecare-border dark:border-darkcare-border">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  항목 1 · 교과학습발달상황
+                </span>
+                <h2 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                  교과 세특 파일 업로드 / 점검
+                </h2>
+              </div>
               <span class="text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                500자 / 1,500B
+                과목별 500자 / 1,500B
               </span>
             </div>
 
-            <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mx-auto mb-3.5 group-hover:scale-105 transition-transform">
-              <i data-lucide="book-open" class="w-7 h-7 text-emerald-700 dark:text-emerald-400"></i>
+            <!-- Subdivided 2-Column Grid: 1) 교과 교사용 vs 2) 담임 교사용 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+
+              <!-- 1-1) 교과 교사용 -->
+              <div ondragover="handleCardDragOver(event)"
+                   ondragleave="handleCardDragLeave(event)"
+                   ondrop="handleCardDrop(event, 'setuk_teacher')"
+                   onclick="triggerFileInputClick('setuk_teacher')"
+                   class="group cursor-pointer rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-600 dark:hover:border-emerald-500 bg-eyecare-surface/60 dark:bg-darkcare-surface/60 p-4 flex flex-col justify-between text-center transition-all duration-200 hover:shadow-sm">
+                <div>
+                  <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-600 text-white">
+                      1) 교과 교사용
+                    </span>
+                    <span class="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                      담당 과목 검토
+                    </span>
+                  </div>
+
+                  <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mx-auto mb-2.5 group-hover:scale-105 transition-transform">
+                    <i data-lucide="book-open" class="w-6 h-6 text-emerald-700 dark:text-emerald-400"></i>
+                  </div>
+
+                  <h3 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mb-1">
+                    교과 교사용 세특 점검
+                  </h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
+                    교과 교사가 <strong>자신이 NEIS에 입력한 자료</strong>를 검토하는 파트<br />
+                    <span class="font-semibold text-emerald-700 dark:text-emerald-400">과목당 최대 500자 (1,500 Byte)</span>
+                  </p>
+                </div>
+
+                <div class="space-y-1.5 pt-2 border-t border-eyecare-border dark:border-darkcare-border">
+                  <button type="button"
+                          onclick="event.stopPropagation(); triggerFileInputClick('setuk_teacher');"
+                          class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                    <span>교과 교사용 엑셀 업로드</span>
+                  </button>
+                  <button type="button"
+                          onclick="event.stopPropagation(); startDirectTextEntry('setuk_teacher');"
+                          class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-500"></i>
+                    <span>직접 텍스트 붙여넣기</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 1-2) 담임 교사용 -->
+              <div ondragover="handleCardDragOver(event)"
+                   ondragleave="handleCardDragLeave(event)"
+                   ondrop="handleCardDrop(event, 'setuk_homeroom')"
+                   onclick="triggerFileInputClick('setuk_homeroom')"
+                   class="group cursor-pointer rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-cyan-600 dark:hover:border-cyan-500 bg-eyecare-surface/60 dark:bg-darkcare-surface/60 p-4 flex flex-col justify-between text-center transition-all duration-200 hover:shadow-sm">
+                <div>
+                  <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-cyan-700 text-white">
+                      2) 담임 교사용
+                    </span>
+                    <span class="text-[10px] font-mono font-bold text-cyan-700 dark:text-cyan-400">
+                      학급 전체 통합 점검
+                    </span>
+                  </div>
+
+                  <div class="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/70 border border-cyan-200 dark:border-cyan-800 flex items-center justify-center mx-auto mb-2.5 group-hover:scale-105 transition-transform">
+                    <i data-lucide="layers" class="w-6 h-6 text-cyan-700 dark:text-cyan-400"></i>
+                  </div>
+
+                  <h3 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mb-1">
+                    담임 교사용 세특 점검
+                  </h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
+                    교과 교사들이 NEIS에 입력한 교과 세특을 <strong>담임 교사가 한번에 점검</strong>하는 파트<br />
+                    <span class="font-semibold text-cyan-700 dark:text-cyan-400">학생별 전 과목 자동 분리 · 각 500자</span>
+                  </p>
+                </div>
+
+                <div class="space-y-1.5 pt-2 border-t border-eyecare-border dark:border-darkcare-border">
+                  <button type="button"
+                          onclick="event.stopPropagation(); triggerFileInputClick('setuk_homeroom');"
+                          class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                    <span>담임 교사용 엑셀 업로드</span>
+                  </button>
+                  <button type="button"
+                          onclick="event.stopPropagation(); startDirectTextEntry('setuk_homeroom');"
+                          class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-eyecare-card dark:bg-darkcare-card hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-500"></i>
+                    <span>직접 텍스트 붙여넣기</span>
+                  </button>
+                </div>
+              </div>
+
             </div>
-
-            <h2 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-1">
-              교과 세특 파일 업로드 / 점검
-            </h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-5">
-              과목별 세부능력 및 특기사항<br />
-              <span class="font-semibold text-emerald-700 dark:text-emerald-400">과목별 최대 500자 (1,500 Byte)</span>
-            </p>
-          </div>
-
-          <div class="space-y-2 pt-2 border-t border-eyecare-border dark:border-darkcare-border">
-            <button type="button"
-                    onclick="event.stopPropagation(); triggerFileInputClick('setuk_subj');"
-                    class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
-              <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-              <span>교과 세특 엑셀 업로드</span>
-            </button>
-            <button type="button"
-                    onclick="event.stopPropagation(); startDirectTextEntry('setuk_subj');"
-                    class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
-              <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-500"></i>
-              <span>직접 텍스트 붙여넣기</span>
-            </button>
           </div>
         </div>
 
@@ -311,40 +383,40 @@
              ondragleave="handleCardDragLeave(event)"
              ondrop="handleCardDrop(event, 'chang_all')"
              onclick="triggerFileInputClick('chang_all')"
-             class="group cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-600 dark:hover:border-teal-500 bg-eyecare-card dark:bg-darkcare-card p-6 flex flex-col justify-between text-center transition-all duration-200 shadow-xs hover:shadow-md">
+             class="lg:col-span-3 group cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-600 dark:hover:border-teal-500 bg-eyecare-card dark:bg-darkcare-card p-5 flex flex-col justify-between text-center transition-all duration-200 shadow-xs hover:shadow-md">
           <div>
             <div class="flex items-center justify-between mb-4">
               <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
                 항목 2 · 창의적 체험활동
               </span>
               <span class="text-[11px] font-mono font-bold text-teal-700 dark:text-teal-400">
-                영역별 500자 / 1,500B
+                영역별 500자
               </span>
             </div>
 
-            <div class="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 flex items-center justify-center mx-auto mb-3.5 group-hover:scale-105 transition-transform">
-              <i data-lucide="compass" class="w-7 h-7 text-teal-700 dark:text-teal-400"></i>
+            <div class="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 flex items-center justify-center mx-auto mb-3 group-hover:scale-105 transition-transform">
+              <i data-lucide="compass" class="w-6 h-6 text-teal-700 dark:text-teal-400"></i>
             </div>
 
-            <h2 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-1">
+            <h2 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mb-1">
               창의적체험활동 파일 업로드 / 점검
             </h2>
             <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-3">
               <strong>자율·자치 / 동아리 / 진로</strong> 자동 분리 및 개별 글자수 계산<br />
-              <span class="font-semibold text-teal-700 dark:text-teal-400">영역별 각 500자(1,500B) + 진로 '희망분야' 작성 여부 확인</span>
+              <span class="font-semibold text-teal-700 dark:text-teal-400">각 500자(1,500B) + 진로 '희망분야' 확인</span>
             </p>
           </div>
 
-          <div class="space-y-2 pt-2 border-t border-eyecare-border dark:border-darkcare-border">
+          <div class="space-y-1.5 pt-2 border-t border-eyecare-border dark:border-darkcare-border">
             <button type="button"
                     onclick="event.stopPropagation(); triggerFileInputClick('chang_all');"
-                    class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                    class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
               <i data-lucide="upload" class="w-3.5 h-3.5"></i>
               <span>창의적체험활동 엑셀 업로드</span>
             </button>
             <button type="button"
                     onclick="event.stopPropagation(); startDirectTextEntry('chang_all');"
-                    class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
+                    class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
               <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-500"></i>
               <span>직접 텍스트 붙여넣기</span>
             </button>
@@ -356,40 +428,40 @@
              ondragleave="handleCardDragLeave(event)"
              ondrop="handleCardDrop(event, 'behav')"
              onclick="triggerFileInputClick('behav')"
-             class="group cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-600 dark:hover:border-indigo-500 bg-eyecare-card dark:bg-darkcare-card p-6 flex flex-col justify-between text-center transition-all duration-200 shadow-xs hover:shadow-md">
+             class="lg:col-span-3 group cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-600 dark:hover:border-indigo-500 bg-eyecare-card dark:bg-darkcare-card p-5 flex flex-col justify-between text-center transition-all duration-200 shadow-xs hover:shadow-md">
           <div>
             <div class="flex items-center justify-between mb-4">
               <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                항목 3 · 행동특성 및 종합의견
+                항목 3 · 행특 및 종합의견
               </span>
               <span class="text-[11px] font-mono font-bold text-indigo-700 dark:text-indigo-400">
                 300자 / 900B
               </span>
             </div>
 
-            <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center mx-auto mb-3.5 group-hover:scale-105 transition-transform">
-              <i data-lucide="user-check" class="w-7 h-7 text-indigo-700 dark:text-indigo-400"></i>
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center mx-auto mb-3 group-hover:scale-105 transition-transform">
+              <i data-lucide="user-check" class="w-6 h-6 text-indigo-700 dark:text-indigo-400"></i>
             </div>
 
-            <h2 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mb-1">
-              행동특성및종합의견 파일 업로드 / 점검
+            <h2 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white mb-1">
+              행동특성및종합의견 업로드 / 점검
             </h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-5">
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
               행동특성 및 종합의견<br />
               <span class="font-semibold text-indigo-700 dark:text-indigo-400">학년당 최대 300자 (900 Byte)</span>
             </p>
           </div>
 
-          <div class="space-y-2 pt-2 border-t border-eyecare-border dark:border-darkcare-border">
+          <div class="space-y-1.5 pt-2 border-t border-eyecare-border dark:border-darkcare-border">
             <button type="button"
                     onclick="event.stopPropagation(); triggerFileInputClick('behav');"
-                    class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
+                    class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold shadow-xs transition cursor-pointer">
               <i data-lucide="upload" class="w-3.5 h-3.5"></i>
               <span>행특 및 종합의견 엑셀 업로드</span>
             </button>
             <button type="button"
                     onclick="event.stopPropagation(); startDirectTextEntry('behav');"
-                    class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
+                    class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted dark:hover:bg-darkcare-muted border border-eyecare-border dark:border-darkcare-border text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer">
               <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-500"></i>
               <span>직접 텍스트 붙여넣기</span>
             </button>
@@ -1076,8 +1148,8 @@
     let appState = {
       fileName: '',
       detectedSchoolName: '',
-      categoryKey: 'setuk_subj',
-      categoryLabel: '과목별 세부능력 및 특기사항',
+      categoryKey: 'setuk_teacher',
+      categoryLabel: '교과세특 (교과 교사용)',
       maxChars: 500,
       maxBytes: 1500,
       maskNames: true,
@@ -1095,8 +1167,13 @@
       '주제', '탐구주제', '탐구 주제', '연구주제', '연구 주제', '제목', '활동', '활동내용', '활동 내용',
       '실습내용', '실습 내용', '실습기간', '실습 기간', '현장실습유형', '현장실습 직무분야', '직무분야',
       '능력단위', '희망분야', '진로희망', '진로희망분야', '독서활동', '봉사활동', '사용자명', '출력자', '출력일시',
-      '자율동아리', '방과후학교스포츠클럽', '비고', '특기사항', '사유', '결론', '결과', '출처', '역할'
+      '자율동아리', '방과후학교스포츠클럽', '비고', '특기사항', '사유', '결론', '결과', '출처', '역할',
+      '과목', '과목명', '교과목', '강의실', '담당교사', '과목담당교사', '학급', '학반'
     ]);
+
+    function isSetukCategoryKey(catKey = appState.categoryKey) {
+      return catKey === 'setuk_teacher' || catKey === 'setuk_homeroom' || catKey === 'setuk_subj';
+    }
 
     function isChangcheCategoryKey(catKey = appState.categoryKey) {
       return catKey === 'chang_all' || catKey === 'chang_auto' || catKey === 'chang_club' || catKey === 'chang_career';
@@ -1352,7 +1429,7 @@
       student.isCareerHopeEmpty = student.checkCareerHope && !student.isCareerHopeWritten;
 
       // Multi-section byte calculation (works for both 과목별 세특 and 창의적체험활동 자율·동아리·진로)
-      if (student.subjects.length > 0 && (appState.categoryKey === 'setuk_subj' || student.isChangcheRecord)) {
+      if (student.subjects.length > 0 && (isSetukCategoryKey(appState.categoryKey) || student.isChangcheRecord)) {
         student.totalCombinedBytes = student.subjects.reduce((acc, cur) => acc + cur.bytes, 0);
         const maxSubj = student.subjects.reduce((prev, curr) => (curr.bytes > prev.bytes ? curr : prev), student.subjects[0]);
         student.bytes = maxSubj.bytes;
@@ -1362,7 +1439,7 @@
       } else {
         student.bytes = calculateNeisBytes(student.text);
         student.totalCombinedBytes = student.bytes;
-        student.maxSubjectName = '';
+        student.maxSubjectName = student.subjectColumnName || '';
         student.overByteSubjects = [];
         student.isByteOver = student.bytes > appState.maxBytes;
       }
@@ -1712,9 +1789,11 @@
 
       // 1) Exact Table Column Headers & Document Titles (Excluding 자율·자치활동, 동아리활동, 진로활동 which are area values)
       const exactHeaders = new Set([
-        '번호', '성명', '이름', '학년', '학반', '반', '학번', '학기', '교과', '과목', '과목명', '학점', '단위수',
-        '영역', '이수시간', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '계', '구분', '순번',
-        '세부능력및특기사항', '과목별세부능력및특기사항', '개인별세부능력및특기사항', '특기사항',
+        '번호', '성명', '이름', '학생성명', '학년', '학반', '반', '학급', '학급명', '강의실', '강의실명', '학번', '학기',
+        '교과', '과목', '과목명', '교과목', '강좌명', '학점', '단위수', '수강자수',
+        '영역', '이수시간', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '계', '구분', '순번', '연번',
+        '세부능력및특기사항', '과목별세부능력및특기사항', '개인별세부능력및특기사항', '특기사항', '내용', '입력내용',
+        '글자수', '바이트', 'Byte', 'byte',
         '학교생활기록부세부능력및특기사항', '학교생활기록부창의적체험활동상황', '학교생활기록부행동특성및종합의견',
         '학교생활기록부', '학생생활기록부', '학교생활세부사항기록부',
         '교과학습발달상황', '창의적체험활동상황', '창의적체험활동',
@@ -1724,8 +1803,8 @@
       ]);
       if (exactHeaders.has(noSpace)) return true;
 
-      // 2) User / Teacher / Print author info anywhere in the cell (e.g., "사용자명 : 진한결", "출력자: 홍길동")
-      if (/(사용자명|사용자|출력자|작성자|인쇄자|담임교사|학급담임|교과담당|담당교사)\s*[:：]/.test(t) && t.length < 60) {
+      // 2) User / Teacher / Subject / Course metadata info anywhere in the cell (e.g., "사용자명 : 진한결", "과목명 : 공통국어1", "강의실 : 1학년 2반")
+      if (/(사용자명|사용자|출력자|작성자|인쇄자|담임교사|학급담임|교과담당|담당교사|과목담당교사|과목명|교과목|강좌명|강의실|교과구분|학년도)\s*[:：]/.test(t) && t.length < 80) {
         return true;
       }
 
@@ -1745,11 +1824,11 @@
       }
 
       // 6) Combined Report Titles & Table Column Headers (e.g., "학교생활기록부 세부능력 및 특기사항", "번 호", "성 명")
-      if (t.length < 45 && !/[.!?]/.test(t) && /[가-힣]/.test(noSpace)) {
+      if (t.length < 55 && !/[.!?]/.test(t) && /[가-힣]/.test(noSpace)) {
         const strippedTitle = noSpace
-          .replace(/(학교생활기록부|학생생활기록부|학교생활세부사항기록부|교과학습발달상황|창의적체험활동상황|창의적체험활동|행동특성및종합의견|독서활동상황|독서활동|일상생활활동상황|출결상황|학적사항|인적·?학적사항|수상경력|자격증취득상황|과목별세부능력및특기사항|개인별세부능력및특기사항|세부능력및특기사항|특기사항|과목별|개인별|학급별|영역별|항목별|목록|현황|조회|출력물)/g, '')
-          .replace(/(번호|성명|이름|학년|학반|반|학번|학기|교과|과목명|과목|학점|단위수|영역|이수시간|시간|비고|결재|담임|부장|교감|교장|계)/g, '')
-          .replace(/[()\[\]·\-.:：/]/g, '');
+          .replace(/(학교생활기록부|학생생활기록부|학교생활세부사항기록부|교과학습발달상황|창의적체험활동상황|창의적체험활동|행동특성및종합의견|독서활동상황|독서활동|일상생활활동상황|출결상황|학적사항|인적·?학적사항|수상경력|자격증취득상황|과목별세부능력및특기사항|개인별세부능력및특기사항|세부능력및특기사항|특기사항|과목별|교과별|개인별|학급별|영역별|항목별|목록|현황|조회|출력물|입력|서식|양식)/g, '')
+          .replace(/(번호|성명|이름|학생성명|학년|학반|반|학급|학급명|강의실|학번|학기|교과|과목명|교과목|강좌명|과목|학점|단위수|수강자수|영역|이수시간|시간|비고|결재|담임|부장|교감|교장|계|순번|연번|글자수|바이트)/g, '')
+          .replace(/[()\[\]·\-.:：/0-9학년반학기]/g, '');
         if (strippedTitle.length === 0) {
           return true;
         }
@@ -1769,16 +1848,57 @@
 
       if (rawNonEmpty.length === 0) return { type: 'empty' };
 
-      // Check if any cell has a school name or class banner before filtering metadata cells
+      // Check if any cell has a school name, class banner, or subject banner before filtering metadata cells
       let detectedSchoolName = '';
       let detectedClassBanner = '';
+      let detectedSubjectBanner = '';
 
       for (const c of rawNonEmpty) {
+        const noSpace = c.text.replace(/\s+/g, '');
         if (/^(?:[가-힣]+\s+)?제?\s*\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(c.text)) {
           detectedClassBanner = c.text.replace(/\s+/g, ' ');
+        } else if (/(?:강의실|학급명?|학반)\s*[:：]\s*([^\n,]+)/.test(c.text)) {
+          const m = c.text.match(/(?:강의실|학급명?|학반)\s*[:：]\s*([^\n,]+)/);
+          if (m && m[1]) detectedClassBanner = m[1].trim();
         } else if (/^[가-힣A-Za-z0-9()·\s]{2,20}(고등학교|고교|중학교|초등학교|특수학교)$/.test(c.text)) {
           detectedSchoolName = c.text;
         }
+        if (/(?:과목명?|교과목|강좌명)\s*[:：]\s*([^\n,]+)/.test(c.text)) {
+          const sm = c.text.match(/(?:과목명?|교과목|강좌명)\s*[:：]\s*([^\n,]+)/);
+          if (sm && sm[1]) {
+            detectedSubjectBanner = sm[1].replace(/\s*(담당교사|교사|학점|단위).*$/, '').trim();
+          }
+        }
+        if (noSpace === '과목' || noSpace === '과목명' || noSpace === '교과목') {
+          // Check if adjacent cell in a metadata row is the subject value
+        }
+      }
+
+      // Detect if this row is a table header row (e.g. contains '성명'/'이름' and '번호'/'세부능력'/'특기사항')
+      const headerCellMatches = rawNonEmpty.filter(c => {
+        const ns = c.text.replace(/\s+/g, '');
+        return /^(번호|학번|성명|이름|학생성명|학년|학반|반|학급|강의실|과목|과목명|교과목|영역|세부능력및특기사항|과목별세부능력및특기사항|특기사항|행동특성및종합의견)$/.test(ns);
+      });
+      if (
+        headerCellMatches.length >= 2 &&
+        rawNonEmpty.some(c => /^(성명|이름|학생성명)$/.test(c.text.replace(/\s+/g, '')))
+      ) {
+        const headerCols = {};
+        rawNonEmpty.forEach(c => {
+          const ns = c.text.replace(/\s+/g, '');
+          if (/^(성명|이름|학생성명)$/.test(ns)) headerCols.nameCol = c.colIdx;
+          else if (/^(번호|학번)$/.test(ns)) headerCols.numCol = c.colIdx;
+          else if (/^(반|학반|학급|학급명|강의실|강의실명)$/.test(ns)) headerCols.classCol = c.colIdx;
+          else if (/^(학년)$/.test(ns)) headerCols.gradeCol = c.colIdx;
+          else if (/^(과목|과목명|교과목|강좌명)$/.test(ns)) headerCols.subjectCol = c.colIdx;
+          else if (/^(세부능력및특기사항|과목별세부능력및특기사항|개인별세부능력및특기사항|특기사항|행동특성및종합의견|내용|입력내용)$/.test(ns)) headerCols.textCol = c.colIdx;
+        });
+        return {
+          type: 'table_header',
+          headerCols,
+          rowClassInfo: detectedClassBanner,
+          rowSubjectName: detectedSubjectBanner
+        };
       }
 
       // Filter out cells that are metadata, titles, headers, dates, user names, or page numbers
@@ -1788,7 +1908,13 @@
       });
 
       if (cells.length === 0) {
-        if (detectedClassBanner) return { type: 'class_banner', classInfo: detectedClassBanner };
+        if (detectedClassBanner || detectedSubjectBanner) {
+          return {
+            type: 'class_banner',
+            classInfo: detectedClassBanner,
+            subjectName: detectedSubjectBanner
+          };
+        }
         if (detectedSchoolName) return { type: 'school_footer', schoolName: detectedSchoolName };
         return { type: 'metadata' };
       }
@@ -1803,7 +1929,8 @@
         type: 'data',
         cells,
         rowClassInfo: detectedClassBanner,
-        rowSchoolName: detectedSchoolName
+        rowSchoolName: detectedSchoolName,
+        rowSubjectName: detectedSubjectBanner
       };
     }
 
@@ -1846,16 +1973,18 @@
       const result = [];
       const fallbackUnnamedParagraphs = [];
       let currentClassInfo = '업로드 학급';
+      let currentSubjectBanner = '';
+      let activeHeaderCols = null;
       let detectedSchool = '';
       let currentChangcheArea = null;
       let hasChangcheAreasInFile = false;
 
       const bannedNameWords = new Set([
-        '번호', '성명', '이름', '학년', '학반', '학번', '학기', '교과', '과목', '과목명', '학점', '단위수',
-        '영역', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '구분', '순번',
+        '번호', '성명', '이름', '학생성명', '학년', '학반', '학급', '강의실', '학번', '학기', '교과', '과목', '과목명', '교과목', '학점', '단위수',
+        '영역', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '구분', '순번', '연번',
         '세부능력', '특기사항', '자율활동', '자치활동', '자율·자치활동', '자율자치활동', '동아리활동', '진로활동',
         '희망분야', '진로희망', '행동특성', '종합의견', '독서활동', '봉사활동', '과목별', '개인별',
-        '공통국어', '공통수학', '공통영어', '통합사회', '통합과학', '한국사', '학교생활', '기록부', '사용자명',
+        '공통국어', '공통수학', '공통영어', '통합사회', '통합과학', '한국사', '과학탐구실험', '학교생활', '기록부', '사용자명',
         '교과학습', '발달상황', '창의적', '체험활동'
       ]);
 
@@ -1867,13 +1996,21 @@
         if (
           classification.type === 'empty' ||
           classification.type === 'metadata' ||
-          classification.type === 'page_number' ||
-          classification.type === 'table_header'
+          classification.type === 'page_number'
         ) {
           continue;
         }
+        if (classification.type === 'table_header') {
+          if (classification.headerCols && Object.keys(classification.headerCols).length > 0) {
+            activeHeaderCols = classification.headerCols;
+          }
+          if (classification.rowClassInfo) currentClassInfo = classification.rowClassInfo;
+          if (classification.rowSubjectName) currentSubjectBanner = classification.rowSubjectName;
+          continue;
+        }
         if (classification.type === 'class_banner') {
-          currentClassInfo = classification.classInfo;
+          if (classification.classInfo) currentClassInfo = classification.classInfo;
+          if (classification.subjectName) currentSubjectBanner = classification.subjectName;
           continue;
         }
         if (classification.type === 'school_footer') {
@@ -1883,6 +2020,9 @@
 
         if (classification.rowClassInfo) {
           currentClassInfo = classification.rowClassInfo;
+        }
+        if (classification.rowSubjectName) {
+          currentSubjectBanner = classification.rowSubjectName;
         }
         if (classification.rowSchoolName) {
           detectedSchool = classification.rowSchoolName;
@@ -1990,41 +2130,99 @@
         let detectedName = '';
         let nameColIdx = -1;
 
-        for (const cellObj of cells) {
-          if (consumedColIndices.has(cellObj.colIdx)) continue;
-          if (cellObj.colIdx >= maxNameColBound) continue;
-          if (longestCellObj && cellObj.colIdx === longestCellObj.colIdx && cells.length > 1 && maxNameColBound === Infinity) continue;
+        // 3-A) If table header explicitly told us which column is 성명, check that column first
+        if (activeHeaderCols && activeHeaderCols.nameCol !== undefined) {
+          const explicitNameCell = cells.find(c => c.colIdx === activeHeaderCols.nameCol && !consumedColIndices.has(c.colIdx));
+          if (explicitNameCell) {
+            const cleanCandidate = explicitNameCell.text.replace(/\s+/g, '');
+            if (/^[가-힣A-Za-z*]{2,10}$/.test(cleanCandidate) && !bannedNameWords.has(cleanCandidate)) {
+              detectedName = cleanCandidate;
+              nameColIdx = explicitNameCell.colIdx;
+            }
+          }
+        }
 
-          const cleanNameCandidate = cellObj.text.replace(/\s+/g, '');
-          if (
-            !detectedName &&
-            /^[가-힣*]{2,5}$/.test(cleanNameCandidate) &&
-            !bannedNameWords.has(cleanNameCandidate) &&
-            !/(고등학교|중학교|초등학교|학교|교육청|올림피아드|특기사항|세부능력|기록부|분야|교사|의사|약사|판사|검사|간호사|변호사|승무원|요리사|연구원|엔지니어|프로그래머|개발자|디자이너|건축가|경찰관|소방관|군인|공무원)$/.test(cleanNameCandidate)
-          ) {
-            detectedName = cleanNameCandidate;
-            nameColIdx = cellObj.colIdx;
+        // 3-B) Fallback heuristic scan for student name
+        if (!detectedName) {
+          for (const cellObj of cells) {
+            if (consumedColIndices.has(cellObj.colIdx)) continue;
+            if (cellObj.colIdx >= maxNameColBound) continue;
+            if (activeHeaderCols && (cellObj.colIdx === activeHeaderCols.subjectCol || cellObj.colIdx === activeHeaderCols.classCol)) continue;
+            if (longestCellObj && cellObj.colIdx === longestCellObj.colIdx && cells.length > 1 && maxNameColBound === Infinity) continue;
+
+            const cleanNameCandidate = cellObj.text.replace(/\s+/g, '');
+            if (
+              !detectedName &&
+              /^[가-힣*]{2,5}$/.test(cleanNameCandidate) &&
+              !bannedNameWords.has(cleanNameCandidate) &&
+              !/(고등학교|중학교|초등학교|학교|교육청|올림피아드|특기사항|세부능력|기록부|분야|교사|의사|약사|판사|검사|간호사|변호사|승무원|요리사|연구원|엔지니어|프로그래머|개발자|디자이너|건축가|경찰관|소방관|군인|공무원|국어|수학|영어|사회|과학|역사|윤리|지리|물리|화학|생명|지구|정보|체육|음악|미술|진로|탐구|실험)$/.test(cleanNameCandidate)
+            ) {
+              detectedName = cleanNameCandidate;
+              nameColIdx = cellObj.colIdx;
+            }
           }
         }
 
         let detectedNum = null;
+        let rowSubjectFromCol = '';
         if (nameColIdx !== -1) {
-          for (const cellObj of cells) {
-            if (cellObj.colIdx >= nameColIdx) continue;
-            const numMatch = cellObj.text.match(/^(\d{1,3})\s*번?$/);
-            if (numMatch) {
-              detectedNum = parseInt(numMatch[1], 10);
-              consumedColIndices.add(cellObj.colIdx);
-              break;
+          // Check explicit subject column if present
+          if (activeHeaderCols && activeHeaderCols.subjectCol !== undefined) {
+            const subjCell = cells.find(c => c.colIdx === activeHeaderCols.subjectCol);
+            if (subjCell && subjCell.colIdx !== nameColIdx) {
+              rowSubjectFromCol = subjCell.text.trim();
+              consumedColIndices.add(subjCell.colIdx);
             }
           }
+
+          // Collect all cells to the left of nameColIdx (e.g. 학년, 학기, 과목, 반/학급, 번호)
+          const leftCells = cells.filter(c => c.colIdx < nameColIdx && !consumedColIndices.has(c.colIdx));
+
+          // If explicit numCol exists, use it; otherwise pick the rightmost numeric cell before nameColIdx
+          if (activeHeaderCols && activeHeaderCols.numCol !== undefined) {
+            const explicitNumCell = leftCells.find(c => c.colIdx === activeHeaderCols.numCol);
+            if (explicitNumCell) {
+              const nm = explicitNumCell.text.match(/(\d{1,4})/);
+              if (nm) detectedNum = parseInt(nm[1], 10);
+            }
+          }
+          if (detectedNum === null) {
+            for (let i = leftCells.length - 1; i >= 0; i--) {
+              const numMatch = leftCells[i].text.match(/^(\d{1,3})\s*번?$/);
+              if (numMatch) {
+                detectedNum = parseInt(numMatch[1], 10);
+                break;
+              }
+            }
+          }
+
+          // Extract class/grade info from remaining left cells (e.g. "1학년 2반", "2반", "1-2", or grade + class columns)
+          let leftGrade = '';
+          let leftClass = '';
+          leftCells.forEach(lc => {
+            if (activeHeaderCols && lc.colIdx === activeHeaderCols.gradeCol && /^\d{1,2}$/.test(lc.text)) {
+              leftGrade = `${lc.text}학년`;
+            } else if (activeHeaderCols && lc.colIdx === activeHeaderCols.classCol) {
+              leftClass = /^\d{1,2}$/.test(lc.text) ? `${lc.text}반` : lc.text;
+            } else if (/^\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(lc.text) || /^\d{1,2}-\d{1,2}$/.test(lc.text) || /^\d{1,2}\s*반$/.test(lc.text)) {
+              leftClass = lc.text.replace(/\s+/g, ' ');
+            }
+            // All cells to the left of student name are metadata columns, so consume them
+            consumedColIndices.add(lc.colIdx);
+          });
+          if (leftGrade && leftClass && !leftClass.includes('학년')) {
+            currentClassInfo = `${leftGrade} ${leftClass}`;
+          } else if (leftClass) {
+            currentClassInfo = leftClass;
+          }
+
           consumedColIndices.add(nameColIdx);
         }
 
-        // Mark pure number cells (grade '1'~'3' or 창체 hours '34', '18', '0') as consumed so they aren't treated as mainText
+        // Mark pure number / byte cells (grade '1'~'3', 창체 hours '34', or char/byte counts) to the right of nameColIdx as consumed
         cells.forEach(cellObj => {
           if (consumedColIndices.has(cellObj.colIdx)) return;
-          if (/^\d{1,3}(\s*시간)?$/.test(cellObj.text)) {
+          if (/^\d{1,4}(\s*(시간|자|Byte|바이트|B))?$/i.test(cellObj.text)) {
             if (nameColIdx !== -1 && cellObj.colIdx > nameColIdx) {
               consumedColIndices.add(cellObj.colIdx);
             } else if (areaColIdx !== -1 && cellObj.colIdx > areaColIdx) {
@@ -2071,9 +2269,13 @@
         }
 
         const prevStudent = result.length > 0 ? result[result.length - 1] : null;
+        const effectiveSubjectName = rowSubjectFromCol || currentSubjectBanner || '';
 
         // Helper to append text & careerHope to a student record
         const appendDataToStudent = (stu, areaName, textChunk, hopeVal, rawEndedSpace) => {
+          if (effectiveSubjectName && !stu.subjectColumnName) {
+            stu.subjectColumnName = effectiveSubjectName;
+          }
           if (hopeVal !== null && hopeVal !== undefined) {
             stu.hasCareerHopeSection = true;
             if (hopeVal.trim().length > 0 || !stu.careerHope) {
@@ -2363,7 +2565,7 @@
       if (!bar) return;
 
       const subjects = student.subjects || [];
-      const showBar = (subjects.length > 1 && (appState.categoryKey === 'setuk_subj' || student.isChangcheRecord)) || student.checkCareerHope;
+      const showBar = (subjects.length > 1 && (isSetukCategoryKey(appState.categoryKey) || student.isChangcheRecord)) || student.checkCareerHope;
       if (!showBar) {
         bar.classList.add('hidden');
         bar.innerHTML = '';
@@ -2561,7 +2763,7 @@
       }
 
       // Render structured cards per section when in 창의적체험활동 or multi-subject mode
-      if (student.subjects && student.subjects.length > 0 && (student.isChangcheRecord || appState.categoryKey === 'setuk_subj')) {
+      if (student.subjects && student.subjects.length > 0 && (student.isChangcheRecord || isSetukCategoryKey(appState.categoryKey))) {
         const targetSections =
           appState.selectedSubjectIdx === 'all'
             ? student.subjects
@@ -3073,7 +3275,7 @@
       const progressBar = document.getElementById('byteProgressBar');
       const catLabel = document.getElementById('bottomCategoryLabel');
 
-      if (student.subjects && student.subjects.length > 0 && (appState.categoryKey === 'setuk_subj' || student.isChangcheRecord)) {
+      if (student.subjects && student.subjects.length > 0 && (isSetukCategoryKey(appState.categoryKey) || student.isChangcheRecord)) {
         if (appState.selectedSubjectIdx !== 'all' && student.subjects[appState.selectedSubjectIdx]) {
           const sub = student.subjects[appState.selectedSubjectIdx];
           catLabel.textContent = `[${sub.subjectName}] (최대 ${maxC}자)`;
