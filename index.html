@@ -1673,16 +1673,17 @@
           }
           const data = new Uint8Array(evt.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
-          let parsedStudents = [];
+          let allRows = [];
 
           for (const sheetName of workbook.SheetNames) {
             const sheet = workbook.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-            const extracted = extractStudentsFromNeisRows(rows);
-            if (extracted.length > 0) {
-              parsedStudents = parsedStudents.concat(extracted);
+            if (rows && rows.length > 0) {
+              allRows = allRows.concat(rows);
             }
           }
+
+          const parsedStudents = extractStudentsFromNeisRows(allRows);
 
           if (parsedStudents.length === 0) {
             showToast('파일에서 학생 데이터를 찾지 못했습니다. 직접 입력 모드로 전환합니다.', 'warning');
@@ -1980,6 +1981,7 @@
       let detectedSchool = '';
       let currentChangcheArea = null;
       let hasChangcheAreasInFile = false;
+      let lastActiveStudent = null;
 
       const bannedNameWords = new Set([
         '번호', '성명', '이름', '학생성명', '학년', '학반', '학급', '강의실', '학번', '학기', '교과', '과목', '과목명', '교과목', '학점', '단위수',
@@ -2271,11 +2273,11 @@
           }
         }
 
-        const prevStudent = result.length > 0 ? result[result.length - 1] : null;
+        const prevStudent = lastActiveStudent || (result.length > 0 ? result[result.length - 1] : null);
         const effectiveSubjectName = rowSubjectFromCol || currentSubjectBanner || '';
 
         // Helper to append text & careerHope to a student record
-        const appendDataToStudent = (stu, areaName, textChunk, hopeVal, rawEndedSpace) => {
+        const appendDataToStudent = (stu, areaName, textChunk, hopeVal, rawEndedSpace, isSeparateTable = false) => {
           if (effectiveSubjectName && !stu.subjectColumnName) {
             stu.subjectColumnName = effectiveSubjectName;
           }
@@ -2297,14 +2299,28 @@
             if (textChunk) {
               const prevAreaText = stu.changcheAreas[areaName] || '';
               const prevAreaSpace = stu._areaEndedWithSpace?.[areaName] || false;
-              stu.changcheAreas[areaName] = mergeContinuationText(prevAreaText, textChunk, prevAreaSpace);
+              stu.changcheAreas[areaName] = isSeparateTable && prevAreaText
+                ? prevAreaText + '\n' + textChunk.trim()
+                : mergeContinuationText(prevAreaText, textChunk, prevAreaSpace);
               stu._areaEndedWithSpace = stu._areaEndedWithSpace || {};
               stu._areaEndedWithSpace[areaName] = rawEndedSpace;
             }
           } else if (textChunk) {
-            stu.text = normalizeSubjectLineBreaks(
-              mergeContinuationText(stu.text, textChunk, stu._lastRawEndedWithSpace)
-            );
+            let formattedChunk = textChunk.trim();
+            if (isSeparateTable && stu.text) {
+              if (
+                isSetukCategoryKey(appState.categoryKey) &&
+                !/^(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,22}\s*:\s+/.test(formattedChunk)
+              ) {
+                const sectionTitle = effectiveSubjectName || '개인별세특';
+                formattedChunk = `${sectionTitle}: ${formattedChunk}`;
+              }
+              stu.text = normalizeSubjectLineBreaks(stu.text + '\n' + formattedChunk);
+            } else {
+              stu.text = normalizeSubjectLineBreaks(
+                mergeContinuationText(stu.text, textChunk, stu._lastRawEndedWithSpace)
+              );
+            }
             stu.originalText = stu.text;
             stu._lastRawEndedWithSpace = rawEndedSpace;
           }
@@ -2315,21 +2331,40 @@
           continue;
         }
 
-        // Case A: Same student name repeated after a page break (or on subsequent area rows)
+        // Case A: Same student immediately repeated after a page break (or on subsequent area rows)
         if (
           prevStudent &&
           detectedName &&
           prevStudent.rawName === detectedName &&
           (detectedNum === null || prevStudent.number === detectedNum)
         ) {
-          appendDataToStudent(prevStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace);
+          appendDataToStudent(prevStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace, false);
+          lastActiveStudent = prevStudent;
           continue;
+        }
+
+        // Case A-2: Same student (matching number + name) appearing again in a second table/section (e.g. 개인별 세특 table at bottom of sheet)
+        if (detectedName && detectedNum !== null) {
+          const existingStudent = result.find(
+            s =>
+              s.number === detectedNum &&
+              s.rawName === detectedName &&
+              (s.classInfo === currentClassInfo || s.classInfo === '업로드 학급' || currentClassInfo === '업로드 학급')
+          );
+          if (existingStudent) {
+            if (existingStudent.classInfo === '업로드 학급' && currentClassInfo !== '업로드 학급') {
+              existingStudent.classInfo = currentClassInfo;
+            }
+            appendDataToStudent(existingStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace, true);
+            lastActiveStudent = existingStudent;
+            continue;
+          }
         }
 
         // Case B: Continuation row with NO student name (e.g., 동아리활동 row, 진로활동 row, 희망분야 row, or page-break split sentence)
         if (!detectedName) {
           if (prevStudent && detectedNum === null) {
-            appendDataToStudent(prevStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace);
+            appendDataToStudent(prevStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace, false);
           } else if (mainText && mainText.length >= 15) {
             fallbackUnnamedParagraphs.push({
               classInfo: currentClassInfo,
@@ -2358,8 +2393,9 @@
           _areaEndedWithSpace: {}
         };
 
-        appendDataToStudent(newStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace);
+        appendDataToStudent(newStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace, false);
         result.push(newStudent);
+        lastActiveStudent = newStudent;
       }
 
       if (detectedSchool) {
