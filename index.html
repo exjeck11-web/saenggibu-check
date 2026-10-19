@@ -1168,7 +1168,8 @@
       '실습내용', '실습 내용', '실습기간', '실습 기간', '현장실습유형', '현장실습 직무분야', '직무분야',
       '능력단위', '희망분야', '진로희망', '진로희망분야', '독서활동', '봉사활동', '사용자명', '출력자', '출력일시',
       '자율동아리', '방과후학교스포츠클럽', '비고', '특기사항', '사유', '결론', '결과', '출처', '역할',
-      '과목', '과목명', '교과목', '강의실', '담당교사', '과목담당교사', '학급', '학반'
+      '과목', '과목명', '교과목', '강의실', '담당교사', '과목담당교사', '학급', '학반',
+      '체육·예술/과학탐구실험', '체육·예술', '교양교과', '진로선택과목', '보통교과', '전문교과'
     ]);
 
     function isSetukCategoryKey(catKey = appState.categoryKey) {
@@ -1195,13 +1196,18 @@
 
     function isValidSubjectTitle(rawTitle) {
       if (!rawTitle) return false;
-      const clean = rawTitle.replace(/^\([12]학기\)\s*/, '').replace(/^\*/, '').trim();
-      if (clean.length < 2 || clean.length > 22) return false;
+      const clean = rawTitle
+        .replace(/^<[^>]+>\s*/, '')
+        .replace(/^\([12]학기\)\s*/, '')
+        .replace(/^\*/, '')
+        .trim();
+      // Support 2-character subject names such as 음악, 미술, 체육, 보건, 철학, 논술, 연극, 환경 as well as longer names
+      if (clean.length < 2 || clean.length > 25) return false;
       // Reject if parentheses are unbalanced (e.g. "(로봇반: 자율동아리)" matched up to ":")
       const openParens = (clean.match(/\(/g) || []).length;
       const closeParens = (clean.match(/\)/g) || []).length;
       if (openParens !== closeParens) return false;
-      if (NON_SUBJECT_LABELS.has(clean)) return false;
+      if (NON_SUBJECT_LABELS.has(clean) || NON_SUBJECT_LABELS.has(clean.replace(/\s+/g, ''))) return false;
       if (/^(https?|ftp|file|mailto)$/i.test(clean)) return false;
       if (/^\d+$/.test(clean)) return false;
       return /^[가-힣A-Za-z0-9]/.test(clean);
@@ -1209,12 +1215,12 @@
 
     // Parse a student's text into individual sections:
     // - For 창의적체험활동: separates 자율·자치활동, 동아리활동, 진로활동 (and extracts inline 희망분야 if present)
-    // - For 교과 세특: separates individual subjects ("과목명: 내용...")
+    // - For 교과 세특: separates individual subjects ("과목명: 내용...") including 2-char subjects (음악, 미술, 체육, 보건 등)
     function parseSubjectsFromStudentText(text, studentRef = null) {
       if (!text || !text.trim()) return [];
 
       // 1) Check if text contains 창의적체험활동 area headers (자율·자치활동, 자율활동, 동아리활동, 진로활동)
-      const changcheHeaderRegex = /(?:^|\n)[ \t]*((?:자율\s*[·ㆍ•.]?\s*자치\s*활동|자율\s*활동|동아리\s*활동|진로\s*활동))\s*:\s*/g;
+      const changcheHeaderRegex = /(?:^|\n)[ \t]*((?:자율\s*[·ㆍ•.]?\s*자치\s*활동|자율\s*활동|동아리\s*활동|진로\s*활동))\s*[:：]\s*/g;
       const changMatches = [];
       let cm;
       while ((cm = changcheHeaderRegex.exec(text)) !== null) {
@@ -1270,7 +1276,8 @@
       }
 
       // 2) Otherwise, parse standard subject headers ("과목명: 내용...")
-      const headerRegex = /(?:^|\n)[ \t]*((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,22}?)\s*:\s+/g;
+      // Supports 2-char subjects (음악, 미술, 체육, 보건, 논술, 철학 등), semester tags "(1학기)", "(2학기)", and section tags
+      const headerRegex = /(?:^|\n)[ \t]*(?:<[^>]+>\s*)?((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()/\-\s]{1,24}?)\s*[:：]\s*/g;
       const matches = [];
       let m;
       while ((m = headerRegex.exec(text)) !== null) {
@@ -1700,11 +1707,14 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // Helper: Ensure each new subject header ("과목명: ...") starts on a clean line
+    // Helper: Ensure each new subject header ("과목명: ...") starts on a clean line and strip standalone section banners like <체육·예술/과학탐구실험>, <교양교과>
     function normalizeSubjectLineBreaks(text) {
       if (!text) return '';
       return String(text)
-        .replace(/([.?!])\s+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()]{2,20}\s*:\s+)/g, '$1\n$2')
+        .replace(/(?:^|\n)[ \t]*<\s*(?:체육\s*[·ㆍ•/]\s*예술(?:\s*[/·]\s*과학탐구실험)?|과학탐구실험|교양\s*교과|진로\s*선택\s*과목|보통\s*교과|전문\s*교과)\s*>[ \t]*(?=\n|$)/g, '\n')
+        .replace(/<\s*(?:체육\s*[·ㆍ•/]\s*예술(?:\s*[/·]\s*과학탐구실험)?|과학탐구실험|교양\s*교과|진로\s*선택\s*과목)\s*>\s*/g, '\n')
+        .replace(/([.?!])\s+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()]{1,22}\s*[:：]\s*)/g, '$1\n$2')
+        .replace(/\n{3,}/g, '\n\n')
         .trim();
     }
 
@@ -1715,8 +1725,8 @@
       if (!a) return b;
       if (!b) return a;
 
-      // If next chunk starts with a new subject header (e.g. "통합사회1: ...", "(2학기) 음악: ...")
-      if (/^(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,22}\s*:\s+/.test(b)) {
+      // If next chunk starts with a new subject header (including 2-char subjects like 음악:, 미술:, 체육1:, 과학탐구실험1:, 진로와 직업:)
+      if (/^(?:<[^>]+>\s*)?(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,24}\s*[:：]\s*/.test(b)) {
         return a + '\n' + b;
       }
 
@@ -1791,11 +1801,13 @@
       // 1) Exact Table Column Headers & Document Titles (Excluding 자율·자치활동, 동아리활동, 진로활동 which are area values)
       const exactHeaders = new Set([
         '번호', '성명', '이름', '학생성명', '학년', '학반', '반', '학급', '학급명', '강의실', '강의실명', '학번', '학기',
-        '교과', '과목', '과목명', '교과목', '강좌명', '학점', '단위수', '수강자수',
+        '교과', '과목', '과목명', '교과목', '강좌명', '학점', '단위수', '수강자수', '원점수/과목평균', '성취도', '성취도별분포비율', '석차등급', '이수여부', '이수학점합계', '이수단위합계',
         '학적', '학적상태', '학생상태', '상태', '재학여부', '재학', '전출', '전입', '자퇴', '퇴학', '휴학', '제적', '유급', '위탁', '복학',
         '영역', '이수시간', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '계', '구분', '순번', '연번',
         '세부능력및특기사항', '과목별세부능력및특기사항', '개인별세부능력및특기사항', '특기사항', '내용', '입력내용',
         '영재·발명교육기록사항', '영재발명교육기록사항',
+        '<체육·예술/과학탐구실험>', '<체육ㆍ예술/과학탐구실험>', '<체육·예술>', '<체육ㆍ예술>', '<교양교과>', '<진로선택과목>',
+        '체육·예술/과학탐구실험', '체육ㆍ예술/과학탐구실험', '교양교과', '진로선택과목',
         '글자수', '바이트', 'Byte', 'byte',
         '학교생활기록부세부능력및특기사항', '학교생활기록부창의적체험활동상황', '학교생활기록부행동특성및종합의견',
         '학교생활기록부', '학생생활기록부', '학교생활세부사항기록부',
@@ -1830,8 +1842,9 @@
       if (t.length < 55 && !/[.!?]/.test(t) && /[가-힣]/.test(noSpace)) {
         const strippedTitle = noSpace
           .replace(/(학교생활기록부|학생생활기록부|학교생활세부사항기록부|교과학습발달상황|창의적체험활동상황|창의적체험활동|행동특성및종합의견|독서활동상황|독서활동|일상생활활동상황|출결상황|학적사항|인적·?학적사항|수상경력|자격증취득상황|과목별세부능력및특기사항|개인별세부능력및특기사항|세부능력및특기사항|특기사항|영재·?발명교육기록사항|과목별|교과별|개인별|학급별|영역별|항목별|목록|현황|조회|출력물|입력|서식|양식)/g, '')
+          .replace(/(체육·?예술\/과학탐구실험|체육·?예술|과학탐구실험|교양교과|진로선택과목|원점수\/과목평균|성취도별분포비율|성취도|석차등급|이수여부|이수학점합계|이수단위합계)/g, '')
           .replace(/(번호|성명|이름|학생성명|학년|학반|반|학급|학급명|강의실|학번|학기|교과|과목명|교과목|강좌명|과목|학점|단위수|수강자수|학적상태|학생상태|재학여부|학적|상태|영역|이수시간|시간|비고|결재|담임|부장|교감|교장|계|순번|연번|글자수|바이트)/g, '')
-          .replace(/[()\[\]·\-.:：/0-9학년반학기]/g, '');
+          .replace(/[()<>▾\[\]·ㆍ\-.:：/0-9학년반학기]/g, '');
         if (strippedTitle.length === 0) {
           return true;
         }
@@ -2238,7 +2251,22 @@
 
         // 4) Collect remaining unconsumed cell(s) as mainText
         const remainingTextCells = cells.filter(c => !consumedColIndices.has(c.colIdx));
-        let mainText = remainingTextCells.map(c => c.text).join('\n').trim();
+
+        // Support NEIS formats where [과목] and [세부능력 및 특기사항] are in two separate adjacent columns (e.g. "미술" | "미술 사조의 변천사를...")
+        let mainText = '';
+        if (
+          remainingTextCells.length === 2 &&
+          isSetukCategoryKey(appState.categoryKey) &&
+          remainingTextCells[0].text.length <= 20 &&
+          !/[:：.?!]/.test(remainingTextCells[0].text) &&
+          isValidSubjectTitle(remainingTextCells[0].text) &&
+          remainingTextCells[1].text.length > 0 &&
+          !/^(?:<[^>]+>\s*)?(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,24}\s*[:：]/.test(remainingTextCells[1].text)
+        ) {
+          mainText = `${remainingTextCells[0].text.trim()}: ${remainingTextCells[1].text.trim()}`;
+        } else {
+          mainText = remainingTextCells.map(c => c.text).join('\n').trim();
+        }
         const lastRemainingCell = remainingTextCells.length > 0 ? remainingTextCells[remainingTextCells.length - 1] : null;
         const mainRawEndedWithSpace = lastRemainingCell ? /\s$/.test(lastRemainingCell.raw) : false;
 
@@ -2310,9 +2338,9 @@
             if (isSeparateTable && stu.text) {
               if (
                 isSetukCategoryKey(appState.categoryKey) &&
-                !/^(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ⅠⅡⅢ()\s]{2,22}\s*:\s+/.test(formattedChunk)
+                !/^(?:<[^>]+>\s*)?(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,24}\s*[:：]\s*/.test(formattedChunk)
               ) {
-                const sectionTitle = effectiveSubjectName || '개인별세특';
+                const sectionTitle = effectiveSubjectName || '추가세특';
                 formattedChunk = `${sectionTitle}: ${formattedChunk}`;
               }
               stu.text = normalizeSubjectLineBreaks(stu.text + '\n' + formattedChunk);
