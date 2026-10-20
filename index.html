@@ -2646,29 +2646,40 @@
         const isSelected = student.id === appState.selectedStudentId;
         const displayName = maskStudentName(student.rawName);
 
+        const formatEmptyLabel = (rawName) => {
+          const n = String(rawName || '').trim();
+          if (n.includes('자율')) return '자율';
+          if (n.includes('동아리')) return '동아리';
+          if (n.includes('진로')) return '진로';
+          return n;
+        };
+
         let badgesHtml = '';
-        if (student.isCompletelyEmpty) {
-          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold border border-slate-300 dark:border-slate-700">⚪ 내용미입력</span>`;
-        } else if (student.hasEmptySection && student.emptySubjects && student.emptySubjects.length > 0) {
-          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold border border-slate-300 dark:border-slate-700" title="일부 영역 내용 미입력">⚪ 미입력 ${student.emptySubjects.length}</span>`;
+        if (student.hasEmptySection && student.emptySubjects && student.emptySubjects.length > 0) {
+          student.emptySubjects.forEach(sub => {
+            const shortName = formatEmptyLabel(sub.subjectName);
+            badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold border border-slate-300 dark:border-slate-700 whitespace-nowrap">${escapeHtml(shortName)} 미작성</span>`;
+          });
+        } else if (student.isCompletelyEmpty) {
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold border border-slate-300 dark:border-slate-700 whitespace-nowrap">내용 미작성</span>`;
         }
         if (student.criticalCount > 0) {
-          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/90 text-rose-700 dark:text-rose-300 text-[11px] font-extrabold border border-rose-200 dark:border-rose-800">🔴 ${student.criticalCount}</span>`;
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/90 text-rose-700 dark:text-rose-300 text-[11px] font-extrabold border border-rose-200 dark:border-rose-800 whitespace-nowrap">🔴 ${student.criticalCount}</span>`;
         }
         if (student.warningCount > 0) {
-          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/90 text-amber-800 dark:text-amber-300 text-[11px] font-extrabold border border-amber-200 dark:border-amber-800">🟡 ${student.warningCount}</span>`;
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/90 text-amber-800 dark:text-amber-300 text-[11px] font-extrabold border border-amber-200 dark:border-amber-800 whitespace-nowrap">🟡 ${student.warningCount}</span>`;
         }
         if (student.styleCount > 0) {
-          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/90 text-blue-700 dark:text-blue-300 text-[11px] font-extrabold border border-blue-200 dark:border-blue-800">🔵 ${student.styleCount}</span>`;
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/90 text-blue-700 dark:text-blue-300 text-[11px] font-extrabold border border-blue-200 dark:border-blue-800 whitespace-nowrap">🔵 ${student.styleCount}</span>`;
         }
         if (student.isCareerHopeEmpty) {
-          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[10px] font-extrabold border border-rose-300 dark:border-rose-800" title="진로활동 희망분야 미작성">희망분야미작성</span>`;
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[10px] font-extrabold border border-rose-300 dark:border-rose-800 whitespace-nowrap" title="진로활동 희망분야 미작성">희망분야 미작성</span>`;
         }
         if (student.isByteOver) {
-          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-extrabold">초과</span>`;
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-extrabold whitespace-nowrap">초과</span>`;
         }
         if (!student.hasAnyIssue) {
-          badgesHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold">✅ 통과</span>`;
+          badgesHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold whitespace-nowrap">✅ 통과</span>`;
         }
 
         const byteSubLabel =
@@ -2679,12 +2690,13 @@
             : `${student.bytes}B`;
 
         const previewSnippet = student.isCompletelyEmpty
-          ? '(내용이 입력되지 않음)'
+          ? ''
           : student.subjects && student.subjects.length > 0
           ? student.subjects
-              .map(s => `${s.subjectName}: ${s.isEmptyBody ? '(미입력)' : s.bodyText}`)
+              .filter(s => !s.isEmptyBody)
+              .map(s => `${s.subjectName}: ${s.bodyText}`)
               .join(' / ')
-          : (student.text || '(내용이 입력되지 않음)');
+          : (student.text || '').trim();
 
         return `
           <button type="button" onclick="selectStudent(${student.id})"
@@ -2693,15 +2705,15 @@
                       ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border-l-4 border-l-emerald-600'
                       : 'hover:bg-eyecare-muted/50 dark:hover:bg-darkcare-muted/40'
                   }">
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5">
-                <span class="text-xs font-mono font-bold text-slate-400 dark:text-slate-500">${String(student.number).padStart(2, '0')}번</span>
-                <span class="text-sm font-bold ${isSelected ? 'text-emerald-950 dark:text-emerald-200' : 'text-slate-800 dark:text-slate-200'}">${displayName}</span>
-                <span class="text-[10px] font-mono text-slate-400">${byteSubLabel}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                <span class="text-xs font-mono font-bold text-slate-400 dark:text-slate-500 shrink-0">${String(student.number).padStart(2, '0')}번</span>
+                <span class="text-sm font-bold shrink-0 ${isSelected ? 'text-emerald-950 dark:text-emerald-200' : 'text-slate-800 dark:text-slate-200'}">${displayName}</span>
+                <span class="text-[10px] font-mono text-slate-400 truncate">${byteSubLabel}</span>
               </div>
-              <p class="text-[11px] ${student.isCompletelyEmpty ? 'text-rose-500 dark:text-rose-400 font-semibold' : 'text-slate-500 dark:text-slate-400'} truncate mt-0.5 max-w-[175px]">${escapeHtml(previewSnippet)}</p>
+              ${previewSnippet ? `<p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">${escapeHtml(previewSnippet)}</p>` : ''}
             </div>
-            <div class="flex items-center gap-1 shrink-0 flex-wrap justify-end">
+            <div class="flex items-center gap-1 shrink-0 flex-wrap justify-end max-w-[145px]">
               ${badgesHtml}
             </div>
           </button>
