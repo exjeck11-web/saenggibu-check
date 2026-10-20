@@ -1711,22 +1711,27 @@
     function normalizeSubjectLineBreaks(text) {
       if (!text) return '';
       return String(text)
-        .replace(/(?:^|\n)[ \t]*<\s*(?:체육\s*[·ㆍ•/]\s*예술(?:\s*[/·]\s*과학탐구실험)?|과학탐구실험|교양\s*교과|진로\s*선택\s*과목|보통\s*교과|전문\s*교과)\s*>[ \t]*(?=\n|$)/g, '\n')
-        .replace(/<\s*(?:체육\s*[·ㆍ•/]\s*예술(?:\s*[/·]\s*과학탐구실험)?|과학탐구실험|교양\s*교과|진로\s*선택\s*과목)\s*>\s*/g, '\n')
-        .replace(/([.?!])\s+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()]{1,22}\s*[:：]\s*)/g, '$1\n$2')
+        // Strip section banners like <체육·예술>, <체육·예술/과학탐구실험>, <교양교과>, [체육·예술], [교양교과] but keep following content on a new line
+        .replace(/<\s*(?:체육\s*[·ㆍ•/ㆍ]?\s*예술(?:\s*[/·ㆍ]\s*과학탐구실험)?|과학탐구실험|교양\s*교과(?:\(군\))?|진로\s*선택\s*과목|보통\s*교과|전문\s*교과)\s*>/g, '\n')
+        .replace(/\[\s*(?:체육\s*[·ㆍ•/ㆍ]?\s*예술(?:\s*[/·ㆍ]\s*과학탐구실험)?|교양\s*교과(?:\(군\))?)\s*\]/g, '\n')
+        // Ensure a newline before subject headers when preceded by punctuation or closing parenthesis/bracket
+        .replace(/([.?!])\s+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,22}\s*[:：]\s*)/g, '$1\n$2')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
     }
 
-    // Helper: Merge continuation text across NEIS page breaks without artificial mid-word line breaks
+    // Helper: Merge continuation text across NEIS page breaks or sub-tables (<체육·예술>, <교양교과>) without losing subject headers
     function mergeContinuationText(prevText, nextText, prevEndedWithSpace = false) {
       const a = (prevText || '').trim();
       const b = (nextText || '').trim();
       if (!a) return b;
       if (!b) return a;
 
-      // If next chunk starts with a new subject header (including 2-char subjects like 음악:, 미술:, 체육1:, 과학탐구실험1:, 진로와 직업:)
-      if (/^(?:<[^>]+>\s*)?(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,24}\s*[:：]\s*/.test(b)) {
+      // If next chunk starts with a section banner (<체육·예술>, <교양교과>) or a new subject header ("음악:", "미술:", "체육1:", "진로와 직업:" etc.)
+      if (
+        /^<\s*(?:체육|교양|진로|과학)/.test(b) ||
+        /^(?:<[^>]+>\s*)?(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,24}\s*[:：]\s*/.test(b)
+      ) {
         return a + '\n' + b;
       }
 
@@ -1839,11 +1844,12 @@
       }
 
       // 6) Combined Report Titles & Table Column Headers (e.g., "학교생활기록부 세부능력 및 특기사항", "번 호", "성 명")
-      if (t.length < 55 && !/[.!?]/.test(t) && /[가-힣]/.test(noSpace)) {
+      // IMPORTANT: Only treat as a header if the cell does NOT contain a colon with actual subject record text!
+      if (t.length < 55 && !/[.!?]/.test(t) && !/[가-힣0-9]\s*[:：]\s*[가-힣]/.test(t) && /[가-힣]/.test(noSpace)) {
         const strippedTitle = noSpace
           .replace(/(학교생활기록부|학생생활기록부|학교생활세부사항기록부|교과학습발달상황|창의적체험활동상황|창의적체험활동|행동특성및종합의견|독서활동상황|독서활동|일상생활활동상황|출결상황|학적사항|인적·?학적사항|수상경력|자격증취득상황|과목별세부능력및특기사항|개인별세부능력및특기사항|세부능력및특기사항|특기사항|영재·?발명교육기록사항|과목별|교과별|개인별|학급별|영역별|항목별|목록|현황|조회|출력물|입력|서식|양식)/g, '')
           .replace(/(체육·?예술\/과학탐구실험|체육·?예술|과학탐구실험|교양교과|진로선택과목|원점수\/과목평균|성취도별분포비율|성취도|석차등급|이수여부|이수학점합계|이수단위합계)/g, '')
-          .replace(/(번호|성명|이름|학생성명|학년|학반|반|학급|학급명|강의실|학번|학기|교과|과목명|교과목|강좌명|과목|학점|단위수|수강자수|학적상태|학생상태|재학여부|학적|상태|영역|이수시간|시간|비고|결재|담임|부장|교감|교장|계|순번|연번|글자수|바이트)/g, '')
+          .replace(/(번호|성명|이름|학생성명|학년|학반|반|학급|학급명|강의실|학번|학기|교과|과목명|교과목|강좌명|과목|학점|단위수|수강자수|학적상태|학생상태|상태|재학여부|학적|상태|영역|이수시간|시간|비고|결재|담임|부장|교감|교장|계|순번|연번|글자수|바이트)/g, '')
           .replace(/[()<>▾\[\]·ㆍ\-.:：/0-9학년반학기]/g, '');
         if (strippedTitle.length === 0) {
           return true;
@@ -1870,7 +1876,6 @@
       let detectedSubjectBanner = '';
 
       for (const c of rawNonEmpty) {
-        const noSpace = c.text.replace(/\s+/g, '');
         if (/^(?:[가-힣]+\s+)?제?\s*\d{1,2}\s*학년\s*\d{1,2}\s*반$/.test(c.text)) {
           detectedClassBanner = c.text.replace(/\s+/g, ' ');
         } else if (/(?:강의실|학급명?|학반)\s*[:：]\s*([^\n,]+)/.test(c.text)) {
@@ -1885,19 +1890,18 @@
             detectedSubjectBanner = sm[1].replace(/\s*(담당교사|교사|학점|단위).*$/, '').trim();
           }
         }
-        if (noSpace === '과목' || noSpace === '과목명' || noSpace === '교과목') {
-          // Check if adjacent cell in a metadata row is the subject value
-        }
       }
 
-      // Detect if this row is a table header row (e.g. contains '성명'/'이름' and '번호'/'세부능력'/'특기사항')
+      // Detect if this row is a table header row.
+      // NOTE: In NEIS 담임교사용 exports, <체육·예술> or <교양교과> sub-tables sometimes have headers like:
+      // [번 호 | 성 명 | 학 년 | 세부능력 및 특기사항] OR [학 년 | 과 목 | 세부능력 및 특기사항] (without 성명!)
       const headerCellMatches = rawNonEmpty.filter(c => {
         const ns = c.text.replace(/\s+/g, '');
-        return /^(번호|학번|성명|이름|학생성명|학년|학반|반|학급|강의실|과목|과목명|교과목|학적|학적상태|학생상태|상태|재학여부|영역|세부능력및특기사항|과목별세부능력및특기사항|특기사항|행동특성및종합의견)$/.test(ns);
+        return /^(번호|학번|성명|이름|학생성명|학년|학반|반|학급|강의실|학기|교과|과목|과목명|교과목|학점|단위수|성취도|이수여부|비고|학적|학적상태|학생상태|상태|재학여부|영역|세부능력및특기사항|과목별세부능력및특기사항|개인별세부능력및특기사항|특기사항|행동특성및종합의견)$/.test(ns);
       });
       if (
         headerCellMatches.length >= 2 &&
-        rawNonEmpty.some(c => /^(성명|이름|학생성명)$/.test(c.text.replace(/\s+/g, '')))
+        headerCellMatches.length === rawNonEmpty.length
       ) {
         const headerCols = {};
         rawNonEmpty.forEach(c => {
@@ -2003,7 +2007,7 @@
         '세부능력', '특기사항', '자율활동', '자치활동', '자율·자치활동', '자율자치활동', '동아리활동', '진로활동',
         '희망분야', '진로희망', '행동특성', '종합의견', '독서활동', '봉사활동', '과목별', '개인별',
         '공통국어', '공통수학', '공통영어', '통합사회', '통합과학', '한국사', '과학탐구실험', '학교생활', '기록부', '사용자명',
-        '교과학습', '발달상황', '창의적', '체험활동'
+        '교과학습', '발달상황', '창의적', '체험활동', '체육·예술', '교양교과', '진로선택', '교양', '체육', '예술', '음악', '미술', '보건', '환경', '논술', '철학', '연극'
       ]);
 
       for (let r = 0; r < rows.length; r++) {
@@ -2020,7 +2024,17 @@
         }
         if (classification.type === 'table_header') {
           if (classification.headerCols && Object.keys(classification.headerCols).length > 0) {
-            activeHeaderCols = classification.headerCols;
+            // Preserve existing nameCol/numCol if the sub-table header (<체육·예술>, <교양교과>) only has [과목 | 세부능력 및 특기사항]
+            if (classification.headerCols.nameCol !== undefined) {
+              activeHeaderCols = classification.headerCols;
+            } else if (activeHeaderCols) {
+              activeHeaderCols = {
+                ...activeHeaderCols,
+                ...classification.headerCols
+              };
+            } else {
+              activeHeaderCols = classification.headerCols;
+            }
           }
           if (classification.rowClassInfo) currentClassInfo = classification.rowClassInfo;
           if (classification.rowSubjectName) currentSubjectBanner = classification.rowSubjectName;
@@ -2047,6 +2061,17 @@
         }
 
         const cells = classification.cells;
+
+        // Skip 성적표/학점 summary rows (e.g. rows containing only grade/semester/subject/credit/achievement like "1 | 체육 | 체육1 | 2 | A" or "1 | 교양 | 진로와 직업 | 2 | P")
+        const joinedRowText = cells.map(c => c.text).join(' ');
+        if (
+          cells.length >= 2 &&
+          cells.every(c => c.text.length <= 18) &&
+          !/[:：.?!]/.test(joinedRowText) &&
+          cells.some(c => /^(A|B|C|D|E|P|\d(\(\d+\))?)$/.test(c.text))
+        ) {
+          continue;
+        }
 
         // Skip 봉사활동 실적 rows (e.g. "2026.03.17.-2026.07.15." | "(학교)OO고등학교" | "환경정화") when not in 봉사활동 mode
         if (
@@ -2160,7 +2185,7 @@
           }
         }
 
-        // 3-B) Fallback heuristic scan for student name
+        // 3-B) Fallback heuristic scan for student name (Removed subject substrings like 음악/미술/체육/윤리 from the end-of-word regex so names ending with those characters are never skipped!)
         if (!detectedName) {
           for (const cellObj of cells) {
             if (consumedColIndices.has(cellObj.colIdx)) continue;
@@ -2173,7 +2198,7 @@
               !detectedName &&
               /^[가-힣*]{2,5}$/.test(cleanNameCandidate) &&
               !bannedNameWords.has(cleanNameCandidate) &&
-              !/(고등학교|중학교|초등학교|학교|교육청|올림피아드|특기사항|세부능력|기록부|분야|교사|의사|약사|판사|검사|간호사|변호사|승무원|요리사|연구원|엔지니어|프로그래머|개발자|디자이너|건축가|경찰관|소방관|군인|공무원|국어|수학|영어|사회|과학|역사|윤리|지리|물리|화학|생명|지구|정보|체육|음악|미술|진로|탐구|실험)$/.test(cleanNameCandidate)
+              !/(고등학교|중학교|초등학교|학교|교육청|올림피아드|특기사항|세부능력|기록부|희망분야|담임교사|연구보고서)$/.test(cleanNameCandidate)
             ) {
               detectedName = cleanNameCandidate;
               nameColIdx = cellObj.colIdx;
@@ -2184,10 +2209,14 @@
         let detectedNum = null;
         let rowSubjectFromCol = '';
         if (nameColIdx !== -1) {
-          // Check explicit subject column if present
-          if (activeHeaderCols && activeHeaderCols.subjectCol !== undefined) {
+          // Check explicit subject column if present (only when it is to the left of the main text cell)
+          if (
+            activeHeaderCols &&
+            activeHeaderCols.subjectCol !== undefined &&
+            (!longestCellObj || activeHeaderCols.subjectCol !== longestCellObj.colIdx)
+          ) {
             const subjCell = cells.find(c => c.colIdx === activeHeaderCols.subjectCol);
-            if (subjCell && subjCell.colIdx !== nameColIdx) {
+            if (subjCell && subjCell.colIdx !== nameColIdx && subjCell.text.length <= 24) {
               rowSubjectFromCol = subjCell.text.trim();
               consumedColIndices.add(subjCell.colIdx);
             }
@@ -2245,6 +2274,9 @@
               consumedColIndices.add(cellObj.colIdx);
             } else if (areaColIdx !== -1 && cellObj.colIdx > areaColIdx) {
               consumedColIndices.add(cellObj.colIdx);
+            } else if (nameColIdx === -1 && cells.length >= 2 && longestCellObj && cellObj.colIdx < longestCellObj.colIdx) {
+              // In continuation rows (e.g. <체육·예술> or <교양교과> rows without student name), consume leading grade number '1', '2', '3'
+              consumedColIndices.add(cellObj.colIdx);
             }
           }
         });
@@ -2252,18 +2284,23 @@
         // 4) Collect remaining unconsumed cell(s) as mainText
         const remainingTextCells = cells.filter(c => !consumedColIndices.has(c.colIdx));
 
-        // Support NEIS formats where [과목] and [세부능력 및 특기사항] are in two separate adjacent columns (e.g. "미술" | "미술 사조의 변천사를...")
+        // Support NEIS formats where [과목] and [세부능력 및 특기사항] are in two separate adjacent columns (e.g. "미술" | "미술 사조의 변천사를...", "진로와 직업" | "자신의 진로에...")
         let mainText = '';
         if (
           remainingTextCells.length === 2 &&
           isSetukCategoryKey(appState.categoryKey) &&
-          remainingTextCells[0].text.length <= 20 &&
+          remainingTextCells[0].text.length <= 22 &&
           !/[:：.?!]/.test(remainingTextCells[0].text) &&
           isValidSubjectTitle(remainingTextCells[0].text) &&
-          remainingTextCells[1].text.length > 0 &&
-          !/^(?:<[^>]+>\s*)?(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,24}\s*[:：]/.test(remainingTextCells[1].text)
+          remainingTextCells[1].text.length > 0
         ) {
-          mainText = `${remainingTextCells[0].text.trim()}: ${remainingTextCells[1].text.trim()}`;
+          const subjTitle = remainingTextCells[0].text.trim();
+          const subjBody = remainingTextCells[1].text.trim();
+          if (subjBody.startsWith(subjTitle + ':') || subjBody.startsWith(subjTitle + ' :')) {
+            mainText = subjBody;
+          } else {
+            mainText = `${subjTitle}: ${subjBody}`;
+          }
         } else {
           mainText = remainingTextCells.map(c => c.text).join('\n').trim();
         }
@@ -2335,18 +2372,18 @@
             }
           } else if (textChunk) {
             let formattedChunk = textChunk.trim();
+            if (
+              effectiveSubjectName &&
+              isSetukCategoryKey(appState.categoryKey) &&
+              !/^(?:<[^>]+>\s*)?(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,24}\s*[:：]\s*/.test(formattedChunk)
+            ) {
+              formattedChunk = `${effectiveSubjectName}: ${formattedChunk}`;
+            }
             if (isSeparateTable && stu.text) {
-              if (
-                isSetukCategoryKey(appState.categoryKey) &&
-                !/^(?:<[^>]+>\s*)?(?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,24}\s*[:：]\s*/.test(formattedChunk)
-              ) {
-                const sectionTitle = effectiveSubjectName || '추가세특';
-                formattedChunk = `${sectionTitle}: ${formattedChunk}`;
-              }
               stu.text = normalizeSubjectLineBreaks(stu.text + '\n' + formattedChunk);
             } else {
               stu.text = normalizeSubjectLineBreaks(
-                mergeContinuationText(stu.text, textChunk, stu._lastRawEndedWithSpace)
+                mergeContinuationText(stu.text, formattedChunk, stu._lastRawEndedWithSpace)
               );
             }
             stu.originalText = stu.text;
@@ -2371,12 +2408,13 @@
           continue;
         }
 
-        // Case A-2: Same student (matching number + name) appearing again in a second table/section (e.g. 개인별 세특 table at bottom of sheet)
-        if (detectedName && detectedNum !== null) {
+        // Case A-2: Same student appearing again in a subsequent sub-table (e.g., <체육·예술 / 과학탐구실험>, <교양교과>, or <개인별 세부능력 및 특기사항>)
+        // Match by (number + name) OR by (name only when number is omitted in the sub-table)
+        if (detectedName) {
           const existingStudent = result.find(
             s =>
-              s.number === detectedNum &&
               s.rawName === detectedName &&
+              (detectedNum === null || s.number === detectedNum) &&
               (s.classInfo === currentClassInfo || s.classInfo === '업로드 학급' || currentClassInfo === '업로드 학급')
           );
           if (existingStudent) {
@@ -2389,9 +2427,21 @@
           }
         }
 
-        // Case B: Continuation row with NO student name (e.g., 동아리활동 row, 진로활동 row, 희망분야 row, or page-break split sentence)
+        // Case B: Continuation row with NO student name (e.g., <체육·예술/과학탐구실험> or <교양교과> row directly below a student, or page-break split sentence)
         if (!detectedName) {
-          if (prevStudent && detectedNum === null) {
+          if (detectedNum !== null) {
+            const existingByNum = result.find(
+              s =>
+                s.number === detectedNum &&
+                (s.classInfo === currentClassInfo || s.classInfo === '업로드 학급' || currentClassInfo === '업로드 학급')
+            );
+            if (existingByNum) {
+              appendDataToStudent(existingByNum, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace, true);
+              lastActiveStudent = existingByNum;
+              continue;
+            }
+          }
+          if (prevStudent) {
             appendDataToStudent(prevStudent, currentChangcheArea, mainText, extractedHopeFromRow, mainRawEndedWithSpace, false);
           } else if (mainText && mainText.length >= 15) {
             fallbackUnnamedParagraphs.push({
