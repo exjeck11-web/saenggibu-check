@@ -1822,12 +1822,17 @@
       if (detectChangcheAreaLabel(t)) return false;
       if (parseCareerHopeCellInfo(t)) return false;
 
-      // Remove all internal whitespace/newlines so "번 호", "성 명", "학 년" match "번호", "성명", "학년"
-      const noSpace = t.replace(/\s+/g, '');
+      // Remove all internal whitespace/newlines AND leading/trailing asterisks (*학년도 -> 학년도)
+      const noSpace = t.replace(/[\s*★☆※]/g, '');
+
+      // Immediate block for NEIS system header keywords even if combined with symbols
+      if (/^(학년도|학생개인번호|개인번호|과목코드|강좌코드|학적변동|학적상태|교과구분|과목명|교과목명|세부능력및특기사항|과목별세부능력및특기사항|영재·?발명교육기록사항)$/.test(noSpace)) {
+        return true;
+      }
 
       // 1) Exact Table Column Headers & Document Titles (Excluding 자율·자치활동, 동아리활동, 진로활동 which are area values)
       const exactHeaders = new Set([
-        '번호', '성명', '이름', '학생성명', '학년', '학년도', '학반', '반', '학급', '학급명', '강의실', '강의실명', '학번', '학기',
+        '번호', '반/번호', '반번호', '성명', '이름', '학생성명', '학년', '학년도', '학반', '반', '학급', '학급명', '강의실', '강의실명', '학번', '학기',
         '학생개인번호', '개인번호', '교과', '과목', '과목명', '교과목', '과목코드', '강좌코드', '강좌명', '학점', '단위수', '수강자수', '원점수/과목평균', '성취도', '성취도별분포비율', '석차등급', '이수여부', '이수학점합계', '이수단위합계',
         '학적', '학적상태', '학적변동', '학적변동구분', '학생상태', '상태', '재학여부', '재학', '전출', '전입', '자퇴', '퇴학', '휴학', '제적', '유급', '위탁', '복학',
         '영역', '이수시간', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '계', '구분', '순번', '연번',
@@ -1923,19 +1928,25 @@
 
       // Detect if this row is a table header row (or a section sub-header like "<체육·예술>", "<교양교과>", "과목 | 세부능력 및 특기사항")
       const headerCellMatches = rawNonEmpty.filter(c => {
-        const ns = c.text.replace(/\s+/g, '');
-        return /^(번호|학번|학생개인번호|개인번호|성명|이름|학생성명|학년도|학년|학반|반|학급|강의실|학기|교과|과목코드|강좌코드|과목|과목명|교과목|학점|단위수|원점수\/과목평균|성취도|성취도별분포비율|석차등급|수강자수|이수여부|이수학점합계|이수단위합계|비고|학적|학적변동|학적상태|학생상태|상태|재학여부|영역|시간|이수시간|세부능력및특기사항|과목별세부능력및특기사항|개인별세부능력및특기사항|특기사항|행동특성및종합의견|<체육·?예술\/과학탐구실험>|<체육·?예술>|<교양교과>|<진로선택과목>|체육·?예술\/과학탐구실험|체육·?예술|교양교과|진로선택과목)$/.test(ns);
+        const ns = c.text.replace(/[\s*★☆※]/g, '');
+        return /^(번호|반\/번호|반번호|학번|학생개인번호|개인번호|성명|이름|학생성명|학년도|학년|학반|반|학급|강의실|학기|교과|과목코드|강좌코드|과목|과목명|교과목|학점|단위수|원점수\/과목평균|성취도|성취도별분포비율|석차등급|수강자수|이수여부|이수학점합계|이수단위합계|비고|학적|학적변동|학적상태|학생상태|상태|재학여부|영역|시간|이수시간|세부능력및특기사항|과목별세부능력및특기사항|개인별세부능력및특기사항|특기사항|행동특성및종합의견|영재·?발명교육기록사항|<체육·?예술\/과학탐구실험>|<체육·?예술>|<교양교과>|<진로선택과목>|체육·?예술\/과학탐구실험|체육·?예술|교양교과|진로선택과목)$/.test(ns);
       });
 
+      // If a row contains 2 or more known header keywords (e.g., 학년도, 학생개인번호, 과목코드, 학적변동), it is 100% a table header row!
+      const hasSystemHeaderKeywords = rawNonEmpty.filter(c => {
+        const ns = c.text.replace(/[\s*★☆※]/g, '');
+        return /^(학년도|학생개인번호|개인번호|과목코드|강좌코드|학적변동|세부능력및특기사항|영재·?발명교육기록사항)$/.test(ns);
+      }).length >= 1;
+
       if (
-        headerCellMatches.length >= 1 &&
-        headerCellMatches.length === rawNonEmpty.length
+        (headerCellMatches.length >= 1 && headerCellMatches.length === rawNonEmpty.length) ||
+        (hasSystemHeaderKeywords && headerCellMatches.length >= 2)
       ) {
         const headerCols = {};
         rawNonEmpty.forEach(c => {
-          const ns = c.text.replace(/\s+/g, '');
+          const ns = c.text.replace(/[\s*★☆※]/g, '');
           if (/^(성명|이름|학생성명)$/.test(ns)) headerCols.nameCol = c.colIdx;
-          else if (/^(번호|학번)$/.test(ns)) headerCols.numCol = c.colIdx;
+          else if (/^(번호|반\/번호|반번호|학번)$/.test(ns)) headerCols.numCol = c.colIdx;
           else if (/^(학생개인번호|개인번호)$/.test(ns)) headerCols.studentIdCol = c.colIdx;
           else if (/^(학년도)$/.test(ns)) headerCols.yearCol = c.colIdx;
           else if (/^(과목코드|강좌코드)$/.test(ns)) headerCols.subjectCodeCol = c.colIdx;
@@ -2129,6 +2140,13 @@
 
         const cells = classification.cells;
 
+        // Hard guard: if any cell in this row is a header keyword like 학년도, 학생개인번호, 과목코드, 학적변동, skip the row immediately!
+        if (
+          cells.some(c => /^(학년도|학생개인번호|과목코드|학적변동|영재·?발명교육기록사항)$/.test(c.text.replace(/[\s*★☆※]/g, '')))
+        ) {
+          continue;
+        }
+
         // Skip 봉사활동 실적 rows (e.g. "2026.03.17.-2026.07.15." | "(학교)OO고등학교" | "환경정화") when not in 봉사활동 mode
         if (
           appState.categoryKey !== 'vol_50' &&
@@ -2232,15 +2250,19 @@
           const explicitNameCell = cells.find(c => c.colIdx === activeHeaderCols.nameCol && !consumedColIndices.has(c.colIdx));
           if (explicitNameCell) {
             const cleanCandidate = explicitNameCell.text.replace(/\s+/g, '');
-            if (/^[가-힣A-Za-z*]{2,10}$/.test(cleanCandidate) && !bannedNameWords.has(cleanCandidate)) {
+            const strippedCandidate = cleanCandidate.replace(/\*/g, '');
+            if (
+              /^[가-힣]{1}[가-힣*]{1,5}$/.test(cleanCandidate) &&
+              !bannedNameWords.has(strippedCandidate) &&
+              !/(학년도|개인번호|과목코드|학적변동|특기사항|세부능력)/.test(strippedCandidate)
+            ) {
               detectedName = cleanCandidate;
               nameColIdx = explicitNameCell.colIdx;
             }
           }
         }
 
-        // 3-B) Heuristic scan for student name (2~5 Korean chars)
-        // Only skip longestCellObj if longestCellObj is > 8 chars (actual body text), so empty rows [1 | 강*애 | 1 | 자율·자치활동 | 0] ALWAYS detect 강*애!
+        // 3-B) Heuristic scan for student name (2~5 Korean chars, must start with a Korean char, never '*')
         if (!detectedName) {
           for (const cellObj of cells) {
             if (consumedColIndices.has(cellObj.colIdx)) continue;
@@ -2249,11 +2271,13 @@
             if (longestCellObj && cellObj.colIdx === longestCellObj.colIdx && longestCellObj.text.length > 8 && cells.length > 1) continue;
 
             const cleanNameCandidate = cellObj.text.replace(/\s+/g, '');
+            const strippedCandidate = cleanNameCandidate.replace(/\*/g, '');
             if (
               !detectedName &&
-              /^[가-힣*]{2,5}$/.test(cleanNameCandidate) &&
+              /^[가-힣]{1}[가-힣*]{1,4}$/.test(cleanNameCandidate) &&
               !bannedNameWords.has(cleanNameCandidate) &&
-              !/(고등학교|중학교|초등학교|학교|교육청|올림피아드|특기사항|세부능력|기록부|희망분야|담임교사|연구보고서)$/.test(cleanNameCandidate)
+              !bannedNameWords.has(strippedCandidate) &&
+              !/(학년도|개인번호|과목코드|학적변동|고등학교|중학교|초등학교|학교|교육청|올림피아드|특기사항|세부능력|기록부|희망분야|담임교사|연구보고서)$/.test(strippedCandidate)
             ) {
               detectedName = cleanNameCandidate;
               nameColIdx = cellObj.colIdx;
@@ -2282,13 +2306,19 @@
           if (activeHeaderCols && activeHeaderCols.numCol !== undefined) {
             const explicitNumCell = leftCells.find(c => c.colIdx === activeHeaderCols.numCol);
             if (explicitNumCell) {
-              const nm = explicitNumCell.text.match(/(\d{1,4})/);
-              if (nm) detectedNum = parseInt(nm[1], 10);
+              // Support "1/2" (반/번호) or "1-2" or plain "2"
+              const slashMatch = explicitNumCell.text.match(/^(\d{1,2})\s*[/\-]\s*(\d{1,3})$/);
+              if (slashMatch) {
+                currentClassInfo = `${slashMatch[1]}반`;
+                detectedNum = parseInt(slashMatch[2], 10);
+              } else {
+                const nm = explicitNumCell.text.match(/(\d{1,4})/);
+                if (nm) detectedNum = parseInt(nm[1], 10);
+              }
             }
           }
           if (detectedNum === null) {
             for (let i = leftCells.length - 1; i >= 0; i--) {
-              // Skip yearCol (e.g. "2026"), gradeCol (e.g. "1"), and studentIdCol (e.g. "2026000123") when looking for student number!
               if (
                 activeHeaderCols &&
                 (leftCells[i].colIdx === activeHeaderCols.yearCol ||
@@ -2297,19 +2327,26 @@
               ) {
                 continue;
               }
-              const numMatch = leftCells[i].text.match(/^(\d{1,3})\s*번?$/);
+              const cellTxt = leftCells[i].text.trim();
+              // Support "1/15" or "2-15" (반/번호 format in 교과교사용 성적일람표/세특 양식)
+              const classNumMatch = cellTxt.match(/^(\d{1,2})\s*[/\-]\s*(\d{1,3})$/);
+              if (classNumMatch) {
+                currentClassInfo = `${classNumMatch[1]}반`;
+                detectedNum = parseInt(classNumMatch[2], 10);
+                break;
+              }
+              const numMatch = cellTxt.match(/^(\d{1,3})\s*번?$/);
               if (numMatch) {
                 const candidateNum = parseInt(numMatch[1], 10);
-                // If there is only 1 left numeric cell and it equals 1,2,3 while previous student already had number >= 1, check if it's a grade column
+                // If candidateNum is 1, 2, or 3 and previous students also had the exact same number (meaning this column is actually '학년' or '학기'), skip it so sequential numbering is used!
                 if (
-                  leftCells.length === 1 &&
                   candidateNum >= 1 &&
                   candidateNum <= 3 &&
                   result.length >= 1 &&
                   result.every(s => s.number === candidateNum)
                 ) {
                   detectedNum = null;
-                  break;
+                  continue;
                 }
                 detectedNum = candidateNum;
                 break;
