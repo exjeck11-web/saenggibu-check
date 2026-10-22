@@ -1169,6 +1169,7 @@
       '능력단위', '희망분야', '진로희망', '진로희망분야', '독서활동', '봉사활동', '사용자명', '출력자', '출력일시',
       '자율동아리', '방과후학교스포츠클럽', '비고', '특기사항', '사유', '결론', '결과', '출처', '역할',
       '과목', '과목명', '교과목', '강의실', '담당교사', '과목담당교사', '학급', '학반',
+      '학년도', '학생개인번호', '개인번호', '과목코드', '강좌코드', '학적변동', '학적상태',
       '체육·예술/과학탐구실험', '체육·예술', '교양교과', '진로선택과목', '보통교과', '전문교과'
     ]);
 
@@ -1288,12 +1289,12 @@
         if (isValidSubjectTitle(candidateTitle)) {
           const leadingNewlineOffset = m[0].startsWith('\n') ? 1 : 0;
           const headerStart = m.index + leadingNewlineOffset;
-          const bodyStart = m.index + cm ? 0 : m[0].length;
+          const bodyStart = m.index + m[0].length;
           matches.push({
             subjectName: candidateTitle,
-            headerPrefix: text.slice(headerStart, m.index + m[0].length),
+            headerPrefix: text.slice(headerStart, bodyStart),
             headerStart,
-            bodyStart: m.index + m[0].length,
+            bodyStart,
             isChangcheArea: false
           });
         }
@@ -1826,9 +1827,9 @@
 
       // 1) Exact Table Column Headers & Document Titles (Excluding 자율·자치활동, 동아리활동, 진로활동 which are area values)
       const exactHeaders = new Set([
-        '번호', '성명', '이름', '학생성명', '학년', '학반', '반', '학급', '학급명', '강의실', '강의실명', '학번', '학기',
-        '교과', '과목', '과목명', '교과목', '강좌명', '학점', '단위수', '수강자수', '원점수/과목평균', '성취도', '성취도별분포비율', '석차등급', '이수여부', '이수학점합계', '이수단위합계',
-        '학적', '학적상태', '학생상태', '상태', '재학여부', '재학', '전출', '전입', '자퇴', '퇴학', '휴학', '제적', '유급', '위탁', '복학',
+        '번호', '성명', '이름', '학생성명', '학년', '학년도', '학반', '반', '학급', '학급명', '강의실', '강의실명', '학번', '학기',
+        '학생개인번호', '개인번호', '교과', '과목', '과목명', '교과목', '과목코드', '강좌코드', '강좌명', '학점', '단위수', '수강자수', '원점수/과목평균', '성취도', '성취도별분포비율', '석차등급', '이수여부', '이수학점합계', '이수단위합계',
+        '학적', '학적상태', '학적변동', '학적변동구분', '학생상태', '상태', '재학여부', '재학', '전출', '전입', '자퇴', '퇴학', '휴학', '제적', '유급', '위탁', '복학',
         '영역', '이수시간', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '계', '구분', '순번', '연번',
         '세부능력및특기사항', '과목별세부능력및특기사항', '개인별세부능력및특기사항', '특기사항', '내용', '입력내용',
         '영재·발명교육기록사항', '영재발명교육기록사항',
@@ -1877,7 +1878,7 @@
         const strippedTitle = firstLineNoSpace
           .replace(/(학교생활기록부|학생생활기록부|학교생활세부사항기록부|교과학습발달상황|창의적체험활동상황|창의적체험활동|행동특성및종합의견|독서활동상황|독서활동|일상생활활동상황|출결상황|학적사항|인적·?학적사항|수상경력|자격증취득상황|과목별세부능력및특기사항|개인별세부능력및특기사항|세부능력및특기사항|특기사항|영재·?발명교육기록사항|과목별|교과별|개인별|학급별|영역별|항목별|목록|현황|조회|출력물|입력|서식|양식)/g, '')
           .replace(/(체육·?예술\/과학탐구실험|체육·?예술|과학탐구실험|교양교과|진로선택과목|원점수\/과목평균|성취도별분포비율|성취도|석차등급|이수여부|이수학점합계|이수단위합계)/g, '')
-          .replace(/(번호|성명|이름|학생성명|학년|학반|반|학급|학급명|강의실|학번|학기|교과|과목명|교과목|강좌명|과목|학점|단위수|수강자수|학적상태|학생상태|상태|재학여부|학적|영역|이수시간|시간|비고|결재|담임|부장|교감|교장|계|순번|연번|글자수|바이트)/g, '')
+          .replace(/(번호|성명|이름|학생성명|학년도|학년|학반|반|학급|학급명|강의실|학번|학생개인번호|개인번호|학기|교과|과목코드|강좌코드|과목명|교과목|강좌명|과목|학점|단위수|수강자수|학적변동|학적상태|학생상태|상태|재학여부|학적|영역|이수시간|시간|비고|결재|담임|부장|교감|교장|계|순번|연번|글자수|바이트)/g, '')
           .replace(/[()<>▾\[\]·ㆍ\-.:：/0-9학년반학기]/g, '');
         if (strippedTitle.length === 0) {
           return true;
@@ -1923,7 +1924,7 @@
       // Detect if this row is a table header row (or a section sub-header like "<체육·예술>", "<교양교과>", "과목 | 세부능력 및 특기사항")
       const headerCellMatches = rawNonEmpty.filter(c => {
         const ns = c.text.replace(/\s+/g, '');
-        return /^(번호|학번|성명|이름|학생성명|학년|학반|반|학급|강의실|학기|교과|과목|과목명|교과목|학점|단위수|원점수\/과목평균|성취도|성취도별분포비율|석차등급|수강자수|이수여부|이수학점합계|이수단위합계|비고|학적|학적상태|학생상태|상태|재학여부|영역|시간|이수시간|세부능력및특기사항|과목별세부능력및특기사항|개인별세부능력및특기사항|특기사항|행동특성및종합의견|<체육·?예술\/과학탐구실험>|<체육·?예술>|<교양교과>|<진로선택과목>|체육·?예술\/과학탐구실험|체육·?예술|교양교과|진로선택과목)$/.test(ns);
+        return /^(번호|학번|학생개인번호|개인번호|성명|이름|학생성명|학년도|학년|학반|반|학급|강의실|학기|교과|과목코드|강좌코드|과목|과목명|교과목|학점|단위수|원점수\/과목평균|성취도|성취도별분포비율|석차등급|수강자수|이수여부|이수학점합계|이수단위합계|비고|학적|학적변동|학적상태|학생상태|상태|재학여부|영역|시간|이수시간|세부능력및특기사항|과목별세부능력및특기사항|개인별세부능력및특기사항|특기사항|행동특성및종합의견|<체육·?예술\/과학탐구실험>|<체육·?예술>|<교양교과>|<진로선택과목>|체육·?예술\/과학탐구실험|체육·?예술|교양교과|진로선택과목)$/.test(ns);
       });
 
       if (
@@ -1935,6 +1936,10 @@
           const ns = c.text.replace(/\s+/g, '');
           if (/^(성명|이름|학생성명)$/.test(ns)) headerCols.nameCol = c.colIdx;
           else if (/^(번호|학번)$/.test(ns)) headerCols.numCol = c.colIdx;
+          else if (/^(학생개인번호|개인번호)$/.test(ns)) headerCols.studentIdCol = c.colIdx;
+          else if (/^(학년도)$/.test(ns)) headerCols.yearCol = c.colIdx;
+          else if (/^(과목코드|강좌코드)$/.test(ns)) headerCols.subjectCodeCol = c.colIdx;
+          else if (/^(학적|학적변동|학적상태|학생상태|상태|재학여부)$/.test(ns)) headerCols.statusCol = c.colIdx;
           else if (/^(반|학반|학급|학급명|강의실|강의실명)$/.test(ns)) headerCols.classCol = c.colIdx;
           else if (/^(학년)$/.test(ns)) headerCols.gradeCol = c.colIdx;
           else if (/^(과목|과목명|교과목|강좌명)$/.test(ns)) headerCols.subjectCol = c.colIdx;
@@ -2028,8 +2033,8 @@
       let lastActiveStudent = null;
 
       const bannedNameWords = new Set([
-        '번호', '성명', '이름', '학생성명', '학년', '학반', '학급', '강의실', '학번', '학기', '교과', '과목', '과목명', '교과목', '학점', '단위수',
-        '학적', '학적상태', '학생상태', '상태', '재학여부', '재학', '전출', '전입', '자퇴', '퇴학', '휴학', '제적', '유급', '위탁', '복학', '수료', '졸업',
+        '번호', '성명', '이름', '학생성명', '학년', '학년도', '학반', '학급', '강의실', '학번', '학생개인번호', '개인번호', '학기', '교과', '과목', '과목명', '교과목', '과목코드', '강좌코드', '학점', '단위수',
+        '학적', '학적변동', '학적상태', '학생상태', '상태', '재학여부', '재학', '전출', '전입', '자퇴', '퇴학', '휴학', '제적', '유급', '위탁', '복학', '수료', '졸업',
         '영역', '시간', '비고', '결재', '담임', '부장', '교감', '교장', '구분', '순번', '연번',
         '세부능력', '특기사항', '자율활동', '자치활동', '자율·자치활동', '자율자치활동', '동아리활동', '진로활동',
         '희망분야', '진로희망', '행동특성', '종합의견', '독서활동', '봉사활동', '과목별', '개인별',
@@ -2283,9 +2288,30 @@
           }
           if (detectedNum === null) {
             for (let i = leftCells.length - 1; i >= 0; i--) {
+              // Skip yearCol (e.g. "2026"), gradeCol (e.g. "1"), and studentIdCol (e.g. "2026000123") when looking for student number!
+              if (
+                activeHeaderCols &&
+                (leftCells[i].colIdx === activeHeaderCols.yearCol ||
+                  leftCells[i].colIdx === activeHeaderCols.gradeCol ||
+                  leftCells[i].colIdx === activeHeaderCols.studentIdCol)
+              ) {
+                continue;
+              }
               const numMatch = leftCells[i].text.match(/^(\d{1,3})\s*번?$/);
               if (numMatch) {
-                detectedNum = parseInt(numMatch[1], 10);
+                const candidateNum = parseInt(numMatch[1], 10);
+                // If there is only 1 left numeric cell and it equals 1,2,3 while previous student already had number >= 1, check if it's a grade column
+                if (
+                  leftCells.length === 1 &&
+                  candidateNum >= 1 &&
+                  candidateNum <= 3 &&
+                  result.length >= 1 &&
+                  result.every(s => s.number === candidateNum)
+                ) {
+                  detectedNum = null;
+                  break;
+                }
+                detectedNum = candidateNum;
                 break;
               }
             }
@@ -2320,22 +2346,34 @@
           !rowArea &&
           !hopeCellObj &&
           nonNameCells.length >= 2 &&
-          nonNameCells.every(c => c.text.length <= 22) &&
+          nonNameCells.every(c => c.text.length < 25) &&
           !/[:：.?!]/.test(joinedNonNameText) &&
-          nonNameCells.some(c => /^(A|B|C|D|E|P|\d(\(\d+\))?|[A-E]\(\d+\))$/.test(c.text))
+          nonNameCells.some(c => /^([A-E]|P|·|\d+\/\d+(\.\d+)?(\(\d+\.\d+\))?|[A-E]\(\d+\.\d+\))$/.test(c.text.replace(/\s+/g, '')))
         ) {
           if (detectedName) {
             lastActiveStudent = getOrCreateStudent(detectedName, detectedNum, currentClassInfo);
-          } else if (detectedNum !== null) {
-            const existingByNum = result.find(s => s.number === detectedNum);
-            if (existingByNum) lastActiveStudent = existingByNum;
           }
           continue;
         }
 
-        // Mark pure number / byte cells (grade '1'~'3', 창체 hours '34', or char/byte counts) to the right of nameColIdx as consumed
+        // Mark pure number / byte cells (grade '1'~'3', 창체 hours '34', char/byte counts, or subjectCode / studentId columns) to the right of nameColIdx as consumed
         cells.forEach(cellObj => {
           if (consumedColIndices.has(cellObj.colIdx)) return;
+          if (
+            activeHeaderCols &&
+            (cellObj.colIdx === activeHeaderCols.subjectCodeCol ||
+              cellObj.colIdx === activeHeaderCols.studentIdCol ||
+              cellObj.colIdx === activeHeaderCols.yearCol ||
+              cellObj.colIdx === activeHeaderCols.statusCol)
+          ) {
+            consumedColIndices.add(cellObj.colIdx);
+            return;
+          }
+          // Consume NEIS subject code cells (e.g. "K01", "S0101", "H0101", or 5~12 digit alphanumeric codes)
+          if (/^[A-Z]{1,4}\d{2,8}$/i.test(cellObj.text) || /^\d{5,12}$/.test(cellObj.text)) {
+            consumedColIndices.add(cellObj.colIdx);
+            return;
+          }
           if (/^\d{1,4}(\s*(시간|자|Byte|바이트|B))?$/i.test(cellObj.text)) {
             if (nameColIdx !== -1 && cellObj.colIdx > nameColIdx) {
               consumedColIndices.add(cellObj.colIdx);
@@ -2439,9 +2477,10 @@
             }
           } else if (textChunk) {
             let formattedChunk = normalizeSubjectLineBreaks(textChunk.trim());
-            // Only prepend effectiveSubjectName if formattedChunk does NOT already contain "과목명: ..." headers!
+            // Only prepend effectiveSubjectName if in multi-subject mode (NOT in single-subject 교과 교사용 mode) and formattedChunk does NOT already contain "과목명: ..." headers!
             if (
               effectiveSubjectName &&
+              appState.categoryKey !== 'setuk_teacher' &&
               isSetukCategoryKey(appState.categoryKey) &&
               !hasSubjectHeaderInChunk(formattedChunk)
             ) {
