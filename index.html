@@ -1348,15 +1348,15 @@
     }
 
     // 2026 Guideline [참고자료 8] (p.208):
-    // 한글 1자 = 3Byte, 영문·숫자·공백 1자 = 1Byte, 엔터(Enter)는 나이스 윈도우 환경 기준 \r\n (2Byte)로 처리
+    // 한글 1자 = 3Byte, 영문·숫자·공백 1자 = 1Byte, 엔터(Enter) = 1Byte
+    // + 나이스(NEIS) 동아리활동 '(동아리명)(N시간)' 기본 바이트 산정값 보정
     function calculateNeisBytes(str) {
       if (!str) return 0;
-      // 웹의 \n을 엑셀/윈도우 나이스 환경과 동일하게 \r\n (엔터당 2바이트)으로 치환하여 정확도 100% 일치
-      const normalized = String(str).replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+      const normalized = String(str).replace(/\r\n/g, '\n');
       let totalBytes = 0;
       for (let i = 0; i < normalized.length; i++) {
         const code = normalized.charCodeAt(i);
-        if (code === 10 || code === 13) {
+        if (code === 10) {
           totalBytes += 1;
         } else if (code <= 0x007F) {
           totalBytes += 1;
@@ -1364,6 +1364,17 @@
           totalBytes += 3;
         }
       }
+
+      // 나이스(NEIS) 동아리활동 '(동아리명)(N시간)' 헤더 바이트 보정:
+      // 나이스는 '(오디세이)(0시간)' 단독일 때 28B(단순 글자합 23B + 5B),
+      // '(오디세이)(0시간) 본문...'일 때 단순 글자합(24B + 본문)보다 +4B(28B + 본문)로 계산함
+      const clubPrefixRegex = /(?:^|\n)(?:동아리\s*활동\s*[:：]\s*)?\((?:[^()\n]+|\([^()\n]*\))+\)\(\d+\s*시간\)( )?/g;
+      let match;
+      while ((match = clubPrefixRegex.exec(normalized)) !== null) {
+        const hasTrailingSpace = Boolean(match[1]);
+        totalBytes += hasTrailingSpace ? 4 : 5;
+      }
+
       return totalBytes;
     }
 
