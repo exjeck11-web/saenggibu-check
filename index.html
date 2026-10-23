@@ -1202,8 +1202,15 @@
         .replace(/^\([12]학기\)\s*/, '')
         .replace(/^\*/, '')
         .trim();
-      // Support 2-character subject names such as 음악, 미술, 체육, 보건, 철학, 논술, 연극, 환경 as well as longer names
-      if (clean.length < 2 || clean.length > 25) return false;
+      // Support 2-character subject names such as 음악, 미술, 체육, 보건, 철학, 논술, 연극, 환경 up to 18 chars
+      if (clean.length < 2 || clean.length > 18) return false;
+      // Real subject names have at most 2 spaces (e.g. "진로와 직업", "영어 독해와 작문"). Reject sentence fragments with 3+ spaces.
+      const spaceCount = (clean.match(/\s+/g) || []).length;
+      if (spaceCount > 2) return false;
+      // Reject if it contains sentence adverbs, particles, or modifiers (e.g. "특히 잡종 2세대에서 나타난 약 3")
+      if (/(?:^|\s)(?:특히|또한|하지만|그러나|따라서|그리고|즉|약|총|평균)\s/.test(clean)) return false;
+      if (/(?:에서|으로|에게|부터|까지|통해|위해|대해|따라|나타난|보인|관찰한|분석한)\s/.test(clean)) return false;
+      if (/\s\d+$/.test(clean)) return false;
       // Reject if parentheses are unbalanced (e.g. "(로봇반: 자율동아리)" matched up to ":")
       const openParens = (clean.match(/\(/g) || []).length;
       const closeParens = (clean.match(/\)/g) || []).length;
@@ -1290,7 +1297,8 @@
 
       // 2) Otherwise, parse standard subject headers ("과목명: 내용...")
       // Supports 2-char subjects (음악, 미술, 체육, 보건, 논술, 철학 등), semester tags "(1학기)", "(2학기)", and section tags
-      const headerRegex = /(?:^|\n)[ \t]*(?:<[^>]+>\s*)?((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()/\-\s]{1,24}?)[ \t]*[:：][ \t]*/g;
+      // Never match ratios like "3:1" where a colon is immediately followed by a digit without space.
+      const headerRegex = /(?:^|\n)[ \t]*(?:<[^>]+>\s*)?((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()/\-\s]{1,18}?)[ \t]*[:：](?:[ \t]+|(?![0-9]))/g;
       const matches = [];
       let m;
       while ((m = headerRegex.exec(text)) !== null) {
@@ -1753,8 +1761,6 @@
         // Strip section banners like <체육·예술>, <체육·예술/과학탐구실험>, <교양교과>, [체육·예술], [교양교과] but keep following content on a new line
         .replace(/<\s*(?:체육\s*[·ㆍ•/ㆍ]?\s*예술(?:\s*[/·ㆍ]\s*과학탐구실험)?|과학탐구실험|교양\s*교과(?:\(군\))?|진로\s*선택\s*과목|보통\s*교과|전문\s*교과)\s*>/g, '\n')
         .replace(/\[\s*(?:체육\s*[·ㆍ•/ㆍ]?\s*예술(?:\s*[/·ㆍ]\s*과학탐구실험)?|교양\s*교과(?:\(군\))?)\s*\]/g, '\n')
-        // Ensure a newline before subject headers when preceded by punctuation or closing parenthesis/bracket
-        .replace(/([.?!])\s+((?:\([12]학기\)\s*)?\*?[가-힣A-Za-z0-9·ㆍⅠⅡⅢ()\s]{1,22}\s*[:：]\s*)/g, '$1\n$2')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
     }
