@@ -129,6 +129,26 @@
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
     }
 
+    .hl-duplicate {
+      background-color: rgba(139, 92, 246, 0.14);
+      border-bottom: 2.5px solid #8B5CF6;
+      color: #5B21B6;
+      padding: 1px 3px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .dark .hl-duplicate {
+      background-color: rgba(139, 92, 246, 0.26);
+      color: #DDD6FE;
+      border-bottom-color: #A78BFA;
+    }
+    .hl-duplicate:hover, .hl-duplicate.active-token {
+      background-color: rgba(139, 92, 246, 0.28);
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.35);
+    }
+
     @keyframes spinOnce {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
@@ -570,7 +590,7 @@
           <!-- Bulk Fix Blue (Style/Ending/SpecialChar/Spelling) Button -->
           <button type="button" id="btnBulkFixStyle" onclick="applyAllStyleFixes()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold transition shadow-2xs">
             <i data-lucide="wand-2" class="w-3.5 h-3.5"></i>
-            <span>파란색(어미·특수문자·맞춤법) 일괄 교정</span>
+            <span>파란색(오탈자·어미·특수문자) 일괄 교정</span>
             <span id="bulkStyleCount" class="px-1.5 py-0.2 rounded-full bg-blue-800 text-white text-[10px]">0</span>
           </button>
 
@@ -607,15 +627,18 @@
                 <i data-lucide="scan-eye" class="w-3.5 h-3.5 text-emerald-600"></i>
                 검출 하이라이트 (밑줄 클릭 시 즉시 수정)
               </span>
-              <div class="flex items-center gap-2.5 text-[11px]">
+              <div class="flex items-center gap-2.5 text-[11px] flex-wrap">
                 <span class="inline-flex items-center gap-1 text-rose-700 dark:text-rose-400 font-semibold">
                   <span class="w-2 h-2 rounded-full bg-rose-500"></span>기재 금지
                 </span>
                 <span class="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold">
                   <span class="w-2 h-2 rounded-full bg-amber-500"></span>기재 주의
                 </span>
+                <span class="inline-flex items-center gap-1 text-purple-700 dark:text-purple-400 font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-purple-500"></span>타 학생 중복
+                </span>
                 <span class="inline-flex items-center gap-1 text-blue-700 dark:text-blue-400 font-semibold">
-                  <span class="w-2 h-2 rounded-full bg-blue-500"></span>어미·특수문자·맞춤법
+                  <span class="w-2 h-2 rounded-full bg-blue-500"></span>오탈자·어미·특수문자
                 </span>
               </div>
             </div>
@@ -730,12 +753,18 @@
       </div>
 
       <div class="p-5 overflow-y-auto space-y-3 flex-1">
-        <div class="flex items-center justify-between text-xs">
+        <div class="flex items-center justify-between text-xs flex-wrap gap-2">
           <span id="reportSummaryHeader" class="font-bold text-slate-700 dark:text-slate-300">검출 대상: 총 0명</span>
-          <label class="flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" id="includeStyleInReport" checked onchange="generateReportContent()" class="rounded text-indigo-600" />
-            <span class="text-slate-600 dark:text-slate-400 font-medium">문체·특수문자·맞춤법(🔵) 항목도 포함</span>
-          </label>
+          <div class="flex items-center gap-3 flex-wrap">
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" id="includeDuplicateInReport" checked onchange="generateReportContent()" class="rounded text-purple-600" />
+              <span class="text-slate-600 dark:text-slate-400 font-medium">학생 간 중복(🟣) 포함</span>
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" id="includeStyleInReport" checked onchange="generateReportContent()" class="rounded text-indigo-600" />
+              <span class="text-slate-600 dark:text-slate-400 font-medium">오탈자·문체·특수문자(🔵) 포함</span>
+            </label>
+          </div>
         </div>
 
         <textarea id="reportTextarea" readonly class="w-full h-64 p-3.5 rounded-xl bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border font-mono text-xs leading-relaxed text-slate-800 dark:text-slate-200 focus:outline-none selectable-text"></textarea>
@@ -1111,36 +1140,100 @@
         canDelete: false
       },
       {
-        id: 'style_typo_role',
+        id: 'style_typo_jamo',
         type: 'style',
-        label: '빈출 맞춤법 오류 교정 (역활 → 역할)',
-        regex: /(역활)/g,
-        reason: "'역활'은 비표준어입니다. 표준어인 '역할'로 교정하세요.",
-        basis: '국립국어원 한글 맞춤법 (어문 규범)',
-        replacements: ['역할'],
+        label: '오탈자 검출 (미완성 한글 자음·모음 단독 오타)',
+        regex: /([ㄱ-ㅎㅏ-ㅣ]+)/g,
+        reason: "'ㅏ, ㅡ, ㅇ, ㅜ, ㅋ' 등 완성되지 않은 한글 자모가 본문에 단독으로 입력되어 있습니다. 타이핑 과정에서 발생한 오탈자이므로 삭제하거나 올바른 글자로 교정하세요.",
+        basis: '학교생활기록부 서술형 항목 오탈자 점검 (한글 어문 규범)',
+        replacements: [''],
+        canDelete: true
+      },
+      {
+        id: 'style_typo_punct',
+        type: 'style',
+        label: '오탈자 검출 (마침표·쉼표 연속 중복 입력)',
+        regex: /(\.{2,}|,{2,}|\.\s+\.)/g,
+        reason: "마침표('..') 또는 쉼표(',,')가 중복으로 잘못 입력된 오탈자입니다.",
+        basis: '학교생활기록부 서술형 항목 문장부호 오탈자 점검',
+        replacements: ['.', ','],
         canDelete: false
       },
       {
-        id: 'style_typo_count',
+        id: 'style_typo_repeat_word',
         type: 'style',
-        label: '빈출 맞춤법 오류 교정 (갯수 → 개수)',
-        regex: /(갯수)/g,
-        reason: "한자어에는 사이시옷을 붙이지 않으므로 '개수'가 올바른 표기입니다.",
-        basis: '국립국어원 한글 맞춤법 제30항 (사이시옷 규정)',
-        replacements: ['개수'],
+        label: '오탈자 검출 (동일 어절 연속 중복 입력)',
+        regex: /([가-힣]{2,6})\s+\1(?=[\s.,?!]|$)/g,
+        reason: '동일한 어절이 연속으로 두 번 반복 입력된 오탈자입니다.',
+        basis: '학교생활기록부 서술형 항목 오탈자 점검',
+        replacements: [],
         canDelete: false
       },
       {
-        id: 'style_typo_doeseo',
+        id: 'style_typo_common',
         type: 'style',
-        label: '빈출 맞춤법 오류 교정 (되서 → 되어)',
-        regex: /(되서)/g,
-        reason: "'되-' 뒤에 '-어서'가 결합하면 '되어' 또는 '되어서(돼서)'로 표기해야 합니다.",
-        basis: '국립국어원 한글 맞춤법 제35항',
-        replacements: ['되어', '되어서'],
+        label: '빈출 오탈자 및 맞춤법·외래어 표기 오류 교정',
+        regex: /(역활|갯수|되서|되있었|되있는|되있음|되있다|몇일|오랫만에|금새|설레임|설레이다|설레이는|바램|일군|왠만하면|왠만한|하므로써|할수있|될수있|볼수있|깊숙히|깨끗히|곰곰히|일일히|틈틈히|번번히|가까히|다행이도|소홀이|철저이|컨텐츠|메카니즘|어플리케이션|프리젠테이션|피드벡|패널티|리더쉽|파트너쉽|멤버쉽|팔로우쉽|화이팅|알맞는|걸맞는|생각되어짐|보여짐)/g,
+        reason: '학교생활기록부에서 자주 발생하는 오탈자 및 맞춤법·외래어 표기 오류입니다. 국립국어원 표준어 및 어문 규범에 맞는 올바른 표기로 교정하세요.',
+        basis: '국립국어원 한글 맞춤법 및 외래어 표기법 (어문 규범)',
+        replacements: [],
         canDelete: false
       }
     ];
+
+    // Frequent Typo -> Standard Replacement Dictionary
+    const COMMON_TYPO_MAP = {
+      '역활': ['역할'],
+      '갯수': ['개수'],
+      '되서': ['되어', '되어서'],
+      '되있었': ['되어 있었'],
+      '되있는': ['되어 있는'],
+      '되있음': ['되어 있음'],
+      '되있다': ['되어 있다'],
+      '몇일': ['며칠'],
+      '오랫만에': ['오랜만에'],
+      '금새': ['금세'],
+      '설레임': ['설렘'],
+      '설레이다': ['설레다'],
+      '설레이는': ['설레는'],
+      '바램': ['바람'],
+      '일군': ['일꾼'],
+      '왠만하면': ['웬만하면'],
+      '왠만한': ['웬만한'],
+      '하므로써': ['함으로써'],
+      '할수있': ['할 수 있'],
+      '될수있': ['될 수 있'],
+      '볼수있': ['볼 수 있'],
+      '깊숙히': ['깊숙이'],
+      '깨끗히': ['깨끗이'],
+      '곰곰히': ['곰곰이'],
+      '일일히': ['일일이'],
+      '틈틈히': ['틈틈이'],
+      '번번히': ['번번이'],
+      '가까히': ['가까이'],
+      '다행이도': ['다행히도'],
+      '소홀이': ['소홀히'],
+      '철저이': ['철저히'],
+      '컨텐츠': ['콘텐츠'],
+      '메카니즘': ['메커니즘'],
+      '어플리케이션': ['애플리케이션'],
+      '프리젠테이션': ['프레젠테이션'],
+      '피드벡': ['피드백'],
+      '패널티': ['페널티'],
+      '리더쉽': ['리더십'],
+      '파트너쉽': ['파트너십'],
+      '멤버쉽': ['멤버십'],
+      '팔로우쉽': ['팔로워십'],
+      '화이팅': ['파이팅'],
+      '알맞는': ['알맞은'],
+      '걸맞는': ['걸맞은'],
+      '생각되어짐': ['생각됨'],
+      '보여짐': ['보임']
+    };
+
+    const ALLOWED_REDUPLICATIONS = new Set([
+      '하루', '하나', '서로', '조금', '가지', '차근', '점점', '곳곳', '각각', '매우', '너무'
+    ]);
 
     // -------------------------------------------------------------------------
     // 2. STATE MANAGEMENT (100% IN-MEMORY ZERO-RETENTION)
@@ -1406,6 +1499,9 @@
           if (ignoredKeys.includes(issueKey)) continue;
 
           let customReplacements = [...rule.replacements];
+          let customLabel = rule.label;
+          let customReason = rule.reason;
+
           if (rule.id === 'style_ending_ham') {
             const stem = matchedStr.replace(/(했습니다\.|하였습니다\.|하였다\.)$/, '함.');
             customReplacements = [stem];
@@ -1416,17 +1512,31 @@
               .replace(/(도왔습니다\.|도왔다\.)$/, '도움.')
               .replace(/(이끌어냈습니다\.|이끌어냈다\.)$/, '이끌어냄.');
             customReplacements = [stem];
+          } else if (rule.id === 'style_typo_punct') {
+            customReplacements = matchedStr.includes(',') ? [','] : ['.'];
+          } else if (rule.id === 'style_typo_repeat_word') {
+            const singleWord = match[1] || matchedStr.split(/\s+/)[0];
+            if (ALLOWED_REDUPLICATIONS.has(singleWord)) continue;
+            customReplacements = [singleWord];
+            customLabel = `오탈자 검출 ('${matchedStr}' → '${singleWord}' 중복 입력)`;
+          } else if (rule.id === 'style_typo_common') {
+            const reps = COMMON_TYPO_MAP[matchedStr] || [];
+            customReplacements = reps;
+            if (reps.length > 0) {
+              customLabel = `오탈자·맞춤법 교정 (${matchedStr} → ${reps[0]})`;
+              customReason = `'${matchedStr}'은(는) 오탈자 또는 비표준어 표기입니다. 올바른 표기인 '${reps.join(' / ')}'(으)로 수정하세요.`;
+            }
           }
 
           detected.push({
             key: issueKey,
             ruleId: rule.id,
             type: rule.type,
-            label: rule.label,
+            label: customLabel,
             matchedText: matchedStr,
             start: startIdx,
             end: endIdx,
-            reason: rule.reason,
+            reason: customReason,
             basis: rule.basis,
             replacements: customReplacements,
             canDelete: rule.canDelete
@@ -1454,12 +1564,15 @@
       // Ignore any false-positive issue matches that fall inside section header prefixes (e.g., "자율·자치활동: ")
       const rawIssues = analyzeStudentText(student.text, student.ignoredKeys);
       if (student.subjects && student.subjects.length > 0) {
-        student.issues = rawIssues.filter(issue => {
+        student.wordIssues = rawIssues.filter(issue => {
           return !student.subjects.some(sub => issue.start >= sub.headerStart && issue.start < sub.bodyStart);
         });
       } else {
-        student.issues = rawIssues;
+        student.wordIssues = rawIssues;
       }
+
+      student.duplicateIssues = student.duplicateIssues || [];
+      student.issues = [...student.wordIssues, ...student.duplicateIssues].sort((a, b) => a.start - b.start);
 
       const hasChangcheSections = student.subjects.some(s => s.isChangcheArea);
       student.isChangcheRecord = hasChangcheSections || isChangcheCategoryKey(appState.categoryKey) || Boolean(student.hasCareerHopeSection);
@@ -1501,6 +1614,7 @@
       student.criticalCount = student.issues.filter(i => i.type === 'critical').length;
       student.warningCount = student.issues.filter(i => i.type === 'warning').length;
       student.styleCount = student.issues.filter(i => i.type === 'style').length;
+      student.duplicateCount = student.issues.filter(i => i.type === 'duplicate').length;
       student.hasAnyIssue = (student.issues.length > 0) || student.isByteOver || student.isCareerHopeEmpty || student.hasEmptySection;
 
       if (!student.hasAnyIssue && student.reviewed === undefined) {
@@ -1509,6 +1623,181 @@
         student.reviewed = false;
       }
       return student;
+    }
+
+    // Inter-student duplicate sentence / clause detector across all loaded students
+    function detectInterStudentDuplicates(students) {
+      if (!Array.isArray(students)) return;
+      students.forEach(s => {
+        s.duplicateIssues = [];
+      });
+      if (students.length < 2) return;
+
+      const sentenceBuckets = new Map();
+      const clauseBuckets = new Map();
+
+      const extractCleanSpan = (fullText, rawStart, rawEnd) => {
+        let sIdx = rawStart;
+        let eIdx = rawEnd;
+
+        // Trim leading whitespace
+        while (sIdx < eIdx && /\s/.test(fullText[sIdx])) sIdx++;
+        // Strip leading club prefix like "(오디세이)(0시간) " if present at start of sentence
+        const sliceStr = fullText.slice(sIdx, eIdx);
+        const clubPref = sliceStr.match(/^\((?:[^()\n]+|\([^()\n]*\))+\)\(\d+\s*시간\)\s*/);
+        if (clubPref) {
+          sIdx += clubPref[0].length;
+        }
+        // Trim trailing whitespace
+        while (eIdx > sIdx && /\s/.test(fullText[eIdx - 1])) eIdx--;
+        return { start: sIdx, end: eIdx, text: fullText.slice(sIdx, eIdx) };
+      };
+
+      const normalizeForDup = (str) => {
+        return String(str || '').replace(/[\s.,?!'"“”‘’()\[\]\-·ㆍ:：;]/g, '');
+      };
+
+      students.forEach(student => {
+        const fullText = student.text || '';
+        if (!fullText.trim()) return;
+
+        const ranges =
+          student.subjects && student.subjects.length > 0
+            ? student.subjects.map(sub => ({
+                subjectName: sub.subjectName,
+                start: sub.bodyStart,
+                end: sub.end
+              }))
+            : [{ subjectName: student.subjectColumnName || '', start: 0, end: fullText.length }];
+
+        ranges.forEach(range => {
+          const blockText = fullText.slice(range.start, range.end);
+          const sentenceRx = /[^.!?\n]+[.!?]?/g;
+          let m;
+          while ((m = sentenceRx.exec(blockText)) !== null) {
+            const absRawStart = range.start + m.index;
+            const absRawEnd = absRawStart + m[0].length;
+            const span = extractCleanSpan(fullText, absRawStart, absRawEnd);
+            if (span.text.length < 18) continue;
+
+            const norm = normalizeForDup(span.text);
+            if (norm.length < 14) continue;
+
+            if (!sentenceBuckets.has(norm)) {
+              sentenceBuckets.set(norm, []);
+            }
+            sentenceBuckets.get(norm).push({
+              studentId: student.id,
+              number: student.number,
+              rawName: student.rawName,
+              subjectName: range.subjectName,
+              start: span.start,
+              end: span.end,
+              matchedText: span.text,
+              norm
+            });
+
+            // Also split long sentences (>= 45 chars) into clauses (>= 25 chars) for partial copy-paste detection
+            if (span.text.length >= 45) {
+              const clauseRx = /[^,，]+[,，]?/g;
+              let cm;
+              while ((cm = clauseRx.exec(span.text)) !== null) {
+                const cStart = span.start + cm.index;
+                const cEnd = cStart + cm[0].length;
+                const cSpan = extractCleanSpan(fullText, cStart, cEnd);
+                if (cSpan.text.length < 25 || cSpan.text.length === span.text.length) continue;
+                const cNorm = normalizeForDup(cSpan.text);
+                if (cNorm.length < 20) continue;
+
+                if (!clauseBuckets.has(cNorm)) {
+                  clauseBuckets.set(cNorm, []);
+                }
+                clauseBuckets.get(cNorm).push({
+                  studentId: student.id,
+                  number: student.number,
+                  rawName: student.rawName,
+                  subjectName: range.subjectName,
+                  start: cSpan.start,
+                  end: cSpan.end,
+                  matchedText: cSpan.text,
+                  norm: cNorm,
+                  isClause: true
+                });
+              }
+            }
+          }
+        });
+      });
+
+      const studentDupRanges = new Map();
+      students.forEach(s => studentDupRanges.set(s.id, []));
+
+      const processBuckets = (bucketsMap, isClauseLevel = false) => {
+        bucketsMap.forEach(occurrences => {
+          const distinctStudentIds = new Set(occurrences.map(o => o.studentId));
+          if (distinctStudentIds.size < 2) return;
+
+          occurrences.forEach(occ => {
+            const stu = students.find(s => s.id === occ.studentId);
+            if (!stu) return;
+
+            const existingRanges = studentDupRanges.get(stu.id) || [];
+            // Skip if this range overlaps an already registered full-sentence duplicate on the same student
+            if (existingRanges.some(r => !(occ.end <= r.start || occ.start >= r.end))) {
+              return;
+            }
+
+            const issueKey = `dup_${occ.start}_${occ.end}`;
+            if ((stu.ignoredKeys || []).includes(issueKey)) return;
+
+            const otherStudentsMap = new Map();
+            occurrences.forEach(o => {
+              if (o.studentId !== occ.studentId && !otherStudentsMap.has(o.studentId)) {
+                otherStudentsMap.set(o.studentId, {
+                  studentId: o.studentId,
+                  number: o.number,
+                  rawName: o.rawName,
+                  subjectName: o.subjectName
+                });
+              }
+            });
+            const otherStudents = Array.from(otherStudentsMap.values());
+            if (otherStudents.length === 0) return;
+
+            existingRanges.push({ start: occ.start, end: occ.end });
+
+            const otherNamesPreview = otherStudents
+              .slice(0, 4)
+              .map(o => `${o.number}번 ${maskStudentName(o.rawName)}`)
+              .join(', ') + (otherStudents.length > 4 ? ` 외 ${otherStudents.length - 4}명` : '');
+
+            stu.duplicateIssues.push({
+              key: issueKey,
+              ruleId: 'dup_inter_student',
+              type: 'duplicate',
+              label: isClauseLevel
+                ? `학생 간 동일 구절 중복 기재 (${otherStudents.length}명과 중복)`
+                : `학생 간 동일 문장 중복 기재 (${otherStudents.length}명과 중복)`,
+              matchedText: occ.matchedText,
+              start: occ.start,
+              end: occ.end,
+              otherStudents,
+              reason: `타 학생(${otherNamesPreview})의 기록과 동일한 ${isClauseLevel ? '구절' : '문장'}이 검출되었습니다. 학생 개인별 고유한 활동 내용과 성장 과정이 드러나도록 문장을 개별화하여 수정하세요.`,
+              basis: '2026 학교생활기록부 기재요령 창체(p.80)·세특(p.116) - 학생별 개별적 특성 기재 원칙',
+              replacements: [],
+              canDelete: false
+            });
+          });
+        });
+      };
+
+      processBuckets(sentenceBuckets, false);
+      processBuckets(clauseBuckets, true);
+
+      students.forEach(s => {
+        s.duplicateIssues.sort((a, b) => a.start - b.start);
+        enrichStudentRecord(s);
+      });
     }
 
     function updateVerificationTimestamp() {
@@ -1528,8 +1817,10 @@
         if (resetIgnored) {
           s.ignoredKeys = [];
         }
+        s.duplicateIssues = [];
         enrichStudentRecord(s);
       });
+      detectInterStudentDuplicates(appState.students);
       updateVerificationTimestamp();
     }
 
@@ -1580,8 +1871,7 @@
       }
 
       student.ignoredKeys = [];
-      enrichStudentRecord(student);
-      updateVerificationTimestamp();
+      reAnalyzeAllStudents(false);
       renderWorkspaceAll();
 
       const totalIssues = student.issues.length + (student.isByteOver ? 1 : 0);
@@ -2774,6 +3064,9 @@
         if (student.warningCount > 0) {
           badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/90 text-amber-800 dark:text-amber-300 text-[11px] font-extrabold border border-amber-200 dark:border-amber-800 whitespace-nowrap">🟡 ${student.warningCount}</span>`;
         }
+        if (student.duplicateCount > 0) {
+          badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950/90 text-purple-800 dark:text-purple-300 text-[11px] font-extrabold border border-purple-300 dark:border-purple-800 whitespace-nowrap" title="타 학생과 동일한 문장·구절 중복">🟣 중복 ${student.duplicateCount}</span>`;
+        }
         if (student.styleCount > 0) {
           badgesHtml += `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/90 text-blue-700 dark:text-blue-300 text-[11px] font-extrabold border border-blue-200 dark:border-blue-800 whitespace-nowrap">🔵 ${student.styleCount}</span>`;
         }
@@ -2946,8 +3239,11 @@
       if (student.warningCount > 0) {
         headerBadges += `<span class="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800">🟡 기재 주의 ${student.warningCount}건</span>`;
       }
+      if (student.duplicateCount > 0) {
+        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 text-xs font-bold border border-purple-300 dark:border-purple-800">🟣 타 학생 중복 ${student.duplicateCount}건</span>`;
+      }
       if (student.styleCount > 0) {
-        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">🔵 어미/특수문자/맞춤법 ${student.styleCount}건</span>`;
+        headerBadges += `<span class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800">🔵 오탈자/어미/특수문자 ${student.styleCount}건</span>`;
       }
       if (student.checkCareerHope) {
         if (student.isCareerHopeWritten) {
@@ -2994,34 +3290,53 @@
     }
 
     function renderHighlightedSlice(fullText, allIssues, sliceStart, sliceEnd) {
-      const sliceIssues = (allIssues || []).filter(i => i.start >= sliceStart && i.end <= sliceEnd);
+      const sliceIssues = (allIssues || []).filter(i => i.start < sliceEnd && i.end > sliceStart);
       if (sliceIssues.length === 0) {
         return escapeHtml(fullText.slice(sliceStart, sliceEnd));
       }
 
-      let html = '';
-      let cursor = sliceStart;
+      const wordIssues = sliceIssues.filter(i => i.type !== 'duplicate');
+      const dupIssues = sliceIssues.filter(i => i.type === 'duplicate');
 
+      const boundaryPoints = new Set([sliceStart, sliceEnd]);
       sliceIssues.forEach(issue => {
-        if (issue.start > cursor) {
-          html += escapeHtml(fullText.slice(cursor, issue.start));
-        }
-        const cls =
-          issue.type === 'critical'
-            ? 'hl-critical'
-            : issue.type === 'warning'
-            ? 'hl-warning'
-            : 'hl-style';
-        const activeCls = appState.activeIssueKey === issue.key ? 'active-token' : '';
-        const badgeIcon = issue.type === 'critical' ? '🔴' : issue.type === 'warning' ? '🟡' : '🔵';
-
-        html += `<span class="${cls} ${activeCls}" onclick="handleInlineTokenClick(event, '${escapeJsStr(issue.key)}')" title="${escapeHtml(issue.label)}">${badgeIcon} ${escapeHtml(fullText.slice(issue.start, issue.end))}</span>`;
-        cursor = issue.end;
+        boundaryPoints.add(Math.max(sliceStart, issue.start));
+        boundaryPoints.add(Math.min(sliceEnd, issue.end));
       });
+      const sortedPoints = Array.from(boundaryPoints).sort((a, b) => a - b);
 
-      if (cursor < sliceEnd) {
-        html += escapeHtml(fullText.slice(cursor, sliceEnd));
+      let html = '';
+      for (let idx = 0; idx < sortedPoints.length - 1; idx++) {
+        const p0 = sortedPoints[idx];
+        const p1 = sortedPoints[idx + 1];
+        if (p0 >= p1) continue;
+
+        const segText = fullText.slice(p0, p1);
+        const wordIssue = wordIssues.find(i => i.start <= p0 && i.end >= p1);
+        const dupIssue = dupIssues.find(i => i.start <= p0 && i.end >= p1);
+
+        if (wordIssue) {
+          const cls =
+            wordIssue.type === 'critical'
+              ? 'hl-critical'
+              : wordIssue.type === 'warning'
+              ? 'hl-warning'
+              : 'hl-style';
+          const activeCls = appState.activeIssueKey === wordIssue.key ? 'active-token' : '';
+          const badgeIcon = wordIssue.type === 'critical' ? '🔴' : wordIssue.type === 'warning' ? '🟡' : '🔵';
+          const isFirstSeg = p0 === Math.max(sliceStart, wordIssue.start);
+
+          html += `<span class="${cls} ${activeCls}" onclick="handleInlineTokenClick(event, '${escapeJsStr(wordIssue.key)}')" title="${escapeHtml(wordIssue.label)}">${isFirstSeg ? badgeIcon + ' ' : ''}${escapeHtml(segText)}</span>`;
+        } else if (dupIssue) {
+          const activeCls = appState.activeIssueKey === dupIssue.key ? 'active-token' : '';
+          const isFirstSeg = p0 === Math.max(sliceStart, dupIssue.start);
+
+          html += `<span class="hl-duplicate ${activeCls}" onclick="handleInlineTokenClick(event, '${escapeJsStr(dupIssue.key)}')" title="${escapeHtml(dupIssue.label)}">${isFirstSeg ? '🟣 ' : ''}${escapeHtml(segText)}</span>`;
+        } else {
+          html += escapeHtml(segText);
+        }
       }
+
       return html;
     }
 
@@ -3318,6 +3633,8 @@
             ? isSelected ? 'border-2 border-rose-500 bg-rose-50/90 dark:bg-rose-950/60' : 'border border-rose-200 dark:border-rose-800/80 bg-eyecare-card dark:bg-darkcare-card'
             : issue.type === 'warning'
             ? isSelected ? 'border-2 border-amber-500 bg-amber-50/90 dark:bg-amber-950/60' : 'border border-amber-200 dark:border-amber-800/80 bg-eyecare-card dark:bg-darkcare-card'
+            : issue.type === 'duplicate'
+            ? isSelected ? 'border-2 border-purple-500 bg-purple-50/90 dark:bg-purple-950/60' : 'border border-purple-200 dark:border-purple-800/80 bg-eyecare-card dark:bg-darkcare-card'
             : isSelected ? 'border-2 border-blue-500 bg-blue-50/90 dark:bg-blue-950/60' : 'border border-blue-200 dark:border-blue-800/80 bg-eyecare-card dark:bg-darkcare-card';
 
         const typeBadge =
@@ -3325,9 +3642,19 @@
             ? `<span class="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-[10px] font-extrabold">🔴 기재 금지</span>`
             : issue.type === 'warning'
             ? `<span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">🟡 기재 주의</span>`
-            : `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px] font-extrabold">🔵 어미/표기</span>`;
+            : issue.type === 'duplicate'
+            ? `<span class="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300 text-[10px] font-extrabold">🟣 타 학생 중복</span>`
+            : `<span class="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 text-[10px] font-extrabold">🔵 오탈자/어미/표기</span>`;
 
         const actionButtonsHtml = buildIssueActionButtonsHtml(issue);
+        const decoClass =
+          issue.type === 'critical'
+            ? 'decoration-rose-500 text-rose-700 dark:text-rose-300'
+            : issue.type === 'warning'
+            ? 'decoration-amber-500 text-amber-800 dark:text-amber-300'
+            : issue.type === 'duplicate'
+            ? 'decoration-purple-500 text-purple-800 dark:text-purple-300'
+            : 'decoration-blue-500 text-blue-700 dark:text-blue-300';
 
         cardsHtml += `
           <div id="card_${escapeHtml(issue.key)}"
@@ -3346,7 +3673,7 @@
             </div>
 
             <div class="px-2.5 py-1.5 rounded-lg bg-eyecare-surface dark:bg-darkcare-surface border border-eyecare-border dark:border-darkcare-border text-xs font-bold text-slate-800 dark:text-slate-200">
-              검출 표현: <span class="underline decoration-2 ${issue.type === 'critical' ? 'decoration-rose-500 text-rose-700 dark:text-rose-300' : issue.type === 'warning' ? 'decoration-amber-500 text-amber-800 dark:text-amber-300' : 'decoration-blue-500 text-blue-700 dark:text-blue-300'}">"${escapeHtml(issue.matchedText)}"</span>
+              검출 표현: <span class="underline decoration-2 ${decoClass}">"${escapeHtml(issue.matchedText)}"</span>
             </div>
 
             <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">${escapeHtml(issue.reason)}</p>
@@ -3367,8 +3694,29 @@
 
     function buildIssueActionButtonsHtml(issue) {
       let btns = '';
+
+      if (issue.type === 'duplicate' && Array.isArray(issue.otherStudents)) {
+        issue.otherStudents.slice(0, 5).forEach(other => {
+          const dispName = maskStudentName(other.rawName);
+          const subjNote = other.subjectName ? ` (${other.subjectName})` : '';
+          btns += `
+            <button type="button" onclick="selectStudent(${other.studentId})"
+                    class="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold transition shadow-2xs">
+              🔗 ${other.number}번 ${escapeHtml(dispName)}${escapeHtml(subjNote)} 비교
+            </button>
+          `;
+        });
+        btns += `
+          <button type="button" onclick="if(!appState.directEditMode) toggleDirectEditMode();"
+                  class="px-2.5 py-1 rounded-lg bg-eyecare-surface dark:bg-darkcare-surface hover:bg-eyecare-muted border border-purple-300 dark:border-purple-700 text-purple-800 dark:text-purple-300 text-[11px] font-bold transition">
+            ✏️ 직접 문장 다듬기
+          </button>
+        `;
+        return btns;
+      }
+
       issue.replacements.forEach(rep => {
-        const label = rep === '' ? '기호 삭제' : `'${rep}'(으)로 변경`;
+        const label = rep === '' ? '오탈자·기호 삭제' : `'${rep}'(으)로 변경`;
         btns += `
           <button type="button" onclick="applySingleIssueFix('${escapeJsStr(issue.key)}', '${escapeJsStr(rep)}')"
                   class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition shadow-2xs">
@@ -3377,7 +3725,7 @@
         `;
       });
 
-      if (issue.canDelete) {
+      if (issue.canDelete && !issue.replacements.includes('')) {
         btns += `
           <button type="button" onclick="applySingleIssueFix('${escapeJsStr(issue.key)}', '')"
                   class="px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-950 hover:bg-rose-200 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-[11px] font-bold transition">
@@ -3474,8 +3822,7 @@
       updated = updated.replace(/[ \t]{2,}/g, ' ').replace(/\s+,/g, ',').trim();
 
       student.text = updated;
-      enrichStudentRecord(student);
-      updateVerificationTimestamp();
+      reAnalyzeAllStudents(false);
       hideInlinePopover();
       renderWorkspaceAll();
 
@@ -3490,7 +3837,7 @@
       const student = appState.students.find(s => s.id === appState.selectedStudentId);
       if (!student) return;
       student.ignoredKeys.push(issueKey);
-      enrichStudentRecord(student);
+      reAnalyzeAllStudents(false);
       hideInlinePopover();
       renderWorkspaceAll();
       showToast('문맥 확인 완료로 처리되었습니다. ([검증 새로고침] 클릭 시 다시 검사할 수 있습니다)', 'info');
@@ -3512,11 +3859,10 @@
       });
 
       student.text = text.replace(/[ \t]{2,}/g, ' ').trim();
-      enrichStudentRecord(student);
-      updateVerificationTimestamp();
+      reAnalyzeAllStudents(false);
       hideInlinePopover();
       renderWorkspaceAll();
-      showToast(`파란색(명사형 어미·특수문자·맞춤법) ${styleIssues.length}건을 일괄 교정했습니다.`, 'success');
+      showToast(`파란색(오탈자·명사형 어미·특수문자) ${styleIssues.length}건을 일괄 교정했습니다.`, 'success');
     }
 
     function compressStudentText() {
@@ -3562,8 +3908,7 @@
       });
 
       student.text = compressed.replace(/[ \t]{2,}/g, ' ').trim();
-      enrichStudentRecord(student);
-      updateVerificationTimestamp();
+      reAnalyzeAllStudents(false);
       renderWorkspaceAll();
 
       const savedBytes = beforeBytes - student.bytes;
@@ -3582,8 +3927,7 @@
         student.careerHope = student.originalCareerHope;
       }
       student.ignoredKeys = [];
-      enrichStudentRecord(student);
-      updateVerificationTimestamp();
+      reAnalyzeAllStudents(false);
       hideInlinePopover();
       renderWorkspaceAll();
       showToast('최초 원문으로 복원하고 재검증했습니다.', 'info');
@@ -3716,7 +4060,7 @@
       if (!student) return;
       student.text = newVal;
       if (!student.originalText) student.originalText = newVal;
-      enrichStudentRecord(student);
+      reAnalyzeAllStudents(false);
       updateByteGaugeUI(student);
       renderInspectionCards(student);
       renderStudentList();
@@ -3816,17 +4160,24 @@
 
     function generateReportContent() {
       const includeStyle = document.getElementById('includeStyleInReport').checked;
+      const includeDuplicate = document.getElementById('includeDuplicateInReport')
+        ? document.getElementById('includeDuplicateInReport').checked
+        : true;
       const lines = [];
       let flaggedStudentCount = 0;
 
       lines.push(`■ [생기부 클리어] 2026학년도 학교생활기록부 교차 검토 리포트`);
       lines.push(`- 파일명: ${appState.fileName}`);
-      lines.push(`- 점검 영역: ${appState.categoryLabel} (최대 ${appState.maxChars}자 / ${appState.maxBytes.toLocaleString()} Byte 기준, 기재요령 p.208)`);
+      lines.push(`- 점검 영역: ${appState.categoryLabel} (최대 ${appState.maxBytes.toLocaleString()} Byte 기준, 기재요령 p.208)`);
       lines.push(`- 근거 지침: 2026학년도 학교생활기록부 기재요령(고등학교) [교육부훈령 제555호]`);
       lines.push(`------------------------------------------------------------`);
 
       appState.students.forEach(s => {
-        const filteredIssues = s.issues.filter(i => includeStyle || i.type !== 'style');
+        const filteredIssues = s.issues.filter(i => {
+          if (i.type === 'style' && !includeStyle) return false;
+          if (i.type === 'duplicate' && !includeDuplicate) return false;
+          return true;
+        });
         if (filteredIssues.length === 0 && !s.isByteOver && !s.isCareerHopeEmpty && !s.hasEmptySection) return;
 
         flaggedStudentCount++;
@@ -3855,7 +4206,14 @@
         }
 
         filteredIssues.forEach(issue => {
-          const tag = issue.type === 'critical' ? '[🔴기재금지]' : issue.type === 'warning' ? '[🟡기재주의]' : '[🔵문체/표기]';
+          const tag =
+            issue.type === 'critical'
+              ? '[🔴기재금지]'
+              : issue.type === 'warning'
+              ? '[🟡기재주의]'
+              : issue.type === 'duplicate'
+              ? '[🟣학생간중복]'
+              : '[🔵오탈자/표기]';
           details.push(`${tag} '${issue.matchedText}' -> ${issue.label} (${issue.basis})`);
         });
 
